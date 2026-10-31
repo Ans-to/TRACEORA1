@@ -2,7 +2,7 @@ name: Review Remotion text-on-path frames
 on:
   push:
     branches: [arena/16486d5f-traceora1]
-    paths: ['.github/workflows/remotion-review.yml']
+    paths: ['.github/workflows/remotion-review.yml', 'remotion-dot-path/src/DotToPath.tsx']
 permissions:
   contents: write
 jobs:

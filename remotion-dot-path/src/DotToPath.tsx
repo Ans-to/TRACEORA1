@@ -86,8 +86,8 @@ export const DotToPath: React.FC = () => {
       strokeDashoffset={pathLength * (1 - progress)}/>
     <g mask="url(#text-behind-dot)" fill="#E9F7EE" fontFamily="Arial, sans-serif" fontSize={38} fontWeight={700} letterSpacing={4}>
       <text dy={-23}><textPath href="#route-reference" startOffset="6%">A SINGLE DOT</textPath></text>
-      <text dy={-23}><textPath href="#route-reference" startOffset="39%">FINDS ITS WAY</textPath></text>
-      <text dy={-23}><textPath href="#route-reference" startOffset="70%">BECOMES A PATH</textPath></text>
+      <text dy={-23} xmlSpace="preserve"><textPath href="#route-reference" startOffset="39%">{'FINDS\u00A0ITS\u00A0WAY'}</textPath></text>
+      <text dy={-23} xmlSpace="preserve"><textPath href="#route-reference" startOffset="70%">{'BECOMES\u00A0A\u00A0PATH'}</textPath></text>
     </g>
     <circle cx={x} cy={y} r={91} fill="url(#glow)"/>
     <circle cx={x} cy={y} r={24 + arrival * 10} fill="#A6F2E7" opacity={0.22}/>
