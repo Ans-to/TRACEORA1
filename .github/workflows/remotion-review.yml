@@ -1,0 +1,35 @@
+name: Review Remotion text-on-path frames
+on:
+  push:
+    branches: [arena/16486d5f-traceora1]
+    paths: ['.github/workflows/remotion-review.yml']
+permissions:
+  contents: write
+jobs:
+  stills:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: remotion-dot-path/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: remotion-dot-path
+      - name: Inspect frames before and after the traveling dot
+        working-directory: remotion-dot-path
+        run: |
+          mkdir -p ../review/remotion
+          BROWSER="$(command -v google-chrome || command -v chromium)"
+          for frame in 0 26 66 108 154 188 209; do
+            npx remotion still src/index.ts DotToPath "../review/remotion/frame-${frame}.png" --frame="$frame" --browser-executable="$BROWSER" --log=error
+          done
+      - name: Store temporary review stills
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f review/remotion
+          git commit -m 'Temporary Remotion text reveal review frames'
+          git push origin HEAD:arena/16486d5f-traceora1

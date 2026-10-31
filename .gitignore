@@ -8,3 +8,7 @@ animation/renders/
 review/
 delivery/
 *.mp4
+.remotion-skills/
+remotion-dot-path/node_modules/
+remotion-dot-path/out/
+remotion-dot-path/.cache/
