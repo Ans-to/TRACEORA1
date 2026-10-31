@@ -1,0 +1,10 @@
+.hf-reference/
+node_modules/
+animation/AGENTS.md
+animation/CLAUDE.md
+animation/meta.json
+animation/.hyperframes/
+animation/renders/
+review/
+delivery/
+*.mp4

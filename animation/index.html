@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Dot to Path — HyperFrames</title></head>
+<body marginwidth="0" marginheight="0" topmargin="0" leftmargin="0">
+<div data-hf-id="hf-v67q" id="dot-path" data-composition-id="dot-path" data-start="0" data-duration="7" data-fps="30" data-width="1920" data-height="1080">
+  <svg data-hf-id="hf-kghx" id="stage" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="A luminous dot travels a curved route and draws an elegant path">
+    <defs data-hf-id="hf-mh0t">
+      <linearGradient data-hf-id="hf-8bib" id="trail-ink" x1="0" y1="0" x2="1920" y2="0" gradientUnits="userSpaceOnUse"><stop data-hf-id="hf-i7du" offset="0" stop-color="#4CC9D5"/><stop data-hf-id="hf-vtkn" offset=".48" stop-color="#B7F6EC"/><stop data-hf-id="hf-isbl" offset="1" stop-color="#F6CF9B"/></linearGradient>
+      <radialGradient data-hf-id="hf-oo5d" id="halo"><stop data-hf-id="hf-98p5" offset="0" stop-color="#A6F4E7" stop-opacity=".32"/><stop data-hf-id="hf-3mk9" offset="1" stop-color="#A6F4E7" stop-opacity="0"/></radialGradient>
+      <radialGradient data-hf-id="hf-ndko" id="end-glow"><stop data-hf-id="hf-lzib" offset="0" stop-color="#F8D8A8" stop-opacity=".25"/><stop data-hf-id="hf-i2e3" offset="1" stop-color="#F8D8A8" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect data-hf-id="hf-l4r2" width="1920" height="1080" fill="#09141D"/>
+    <path data-hf-id="hf-cntl" d="M 160 830 C 300 845 320 480 525 492 C 710 505 680 760 886 735 C 1080 710 961 340 1215 325 C 1470 310 1340 620 1570 570 C 1712 540 1675 372 1760 268" fill="none" stroke="#21414B" stroke-width="3" opacity=".7"/>
+    <path data-hf-id="hf-rtc8" id="trail" d="M 160 830 C 300 845 320 480 525 492 C 710 505 680 760 886 735 C 1080 710 961 340 1215 325 C 1470 310 1340 620 1570 570 C 1712 540 1675 372 1760 268" fill="none" stroke="url(#trail-ink)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle data-hf-id="hf-8zjm" id="origin-ring" cx="160" cy="830" r="33" fill="none" stroke="#71CAD0" stroke-width="2" opacity=".45"/>
+    <circle data-hf-id="hf-wjwu" cx="160" cy="830" r="4" fill="#8ADDD6" opacity=".6"/>
+    <circle data-hf-id="hf-f1ph" id="destination-glow" cx="1760" cy="268" r="126" fill="url(#end-glow)" opacity="0"/>
+    <circle data-hf-id="hf-ywn9" id="destination-ring" cx="1760" cy="268" r="38" fill="none" stroke="#F6CF9B" stroke-width="3" opacity="0"/>
+    <circle data-hf-id="hf-a6fk" id="dot-halo" cx="160" cy="830" r="96" fill="url(#halo)"/>
+    <circle data-hf-id="hf-bb9f" id="dot-shell" cx="160" cy="830" r="22" fill="#A7F1E7" opacity=".25"/>
+    <circle data-hf-id="hf-x6p9" id="dot" cx="160" cy="830" r="11" fill="#F7FCED"/>
+  </svg>
+</div>
+<script src="lib/gsap.min.js"></script>
+<script>
+  (() => {
+    'use strict';
+    const path=document.getElementById('trail');
+    const dot=document.getElementById('dot');
+    const shell=document.getElementById('dot-shell');
+    const halo=document.getElementById('dot-halo');
+    const length=path.getTotalLength();
+    path.setAttribute('stroke-dasharray',`${length} ${length}`);
+    const state={distance:0};
+    function pose(){
+      const distance=Math.max(0,Math.min(length,state.distance));
+      const p=path.getPointAtLength(distance);
+      path.setAttribute('stroke-dashoffset',String(length-distance));
+      for(const el of [dot,shell,halo]){el.setAttribute('cx',p.x.toFixed(3));el.setAttribute('cy',p.y.toFixed(3))}
+    }
+    pose();
+    // Registry pattern: offset-path-traveler + svg-stroke-trace, adapted to
+    // a single SVG with no CSS or paid MotionPathPlugin. Pure absolute progress.
+    const tl=gsap.timeline({paused:true});
+    tl.fromTo(state,{distance:0},{distance:length,duration:4.55,ease:'power2.inOut',onUpdate:pose,immediateRender:false},.4);
+    tl.fromTo('#origin-ring',{attr:{r:33,opacity:.45}},{attr:{r:57,opacity:0},duration:.7,ease:'power2.out',immediateRender:false},.4);
+    tl.fromTo('#destination-glow',{attr:{opacity:0}},{attr:{opacity:1},duration:.75,ease:'power2.out',immediateRender:false},4.58);
+    tl.fromTo('#destination-ring',{attr:{opacity:0,r:18}},{attr:{opacity:.9,r:48},duration:.75,ease:'back.out(1.3)',immediateRender:false},4.65);
+    tl.fromTo('#dot-shell',{attr:{r:22,opacity:.25}},{attr:{r:38,opacity:.16},duration:.8,ease:'power2.out',immediateRender:false},4.95);
+    tl.fromTo('#dot',{attr:{r:11,fill:'#F7FCED'}},{attr:{r:14,fill:'#F6CF9B'},duration:.65,ease:'power2.out',immediateRender:false},4.95);
+    tl.to(state,{distance:length,duration:.01,onUpdate:pose},6.98);
+    window.__timelines=window.__timelines||{};
+    window.__timelines['dot-path']=tl;
+  })();
+</script>
+</body></html>
