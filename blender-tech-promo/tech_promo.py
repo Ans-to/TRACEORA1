@@ -39,6 +39,7 @@ def clear_scene():
 
 def emission(name, color, strength=1):
     mat = bpy.data.materials.new(name)
+    mat.diffuse_color = color  # Workbench uses diffuse_color, not shader nodes.
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     nodes.clear()
@@ -118,7 +119,12 @@ def circle(name, x, z, radius, shot, color, depth=-.04):
 def setup():
     clear_scene()
     scene = bpy.context.scene
-    scene.render.engine = 'BLENDER_EEVEE_NEXT' if 'BLENDER_EEVEE_NEXT' in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items.keys() else 'BLENDER_EEVEE'
+    # Workbench is deterministic and fast on CPU-only GitHub Actions runners.
+    scene.render.engine = 'BLENDER_WORKBENCH'
+    scene.display.shading.light = 'FLAT'
+    scene.display.shading.color_type = 'MATERIAL'
+    scene.display.shading.show_shadows = False
+    scene.display.shading.show_cavity = False
     scene.render.resolution_x, scene.render.resolution_y = RESOLUTION_X, RESOLUTION_Y
     scene.render.resolution_percentage = 100
     scene.render.fps, scene.frame_start, scene.frame_end = FPS, FRAME_START, FRAME_END
@@ -127,6 +133,8 @@ def setup():
     scene.render.image_settings.file_format = 'PNG'
     scene.render.filepath = str(Path(OUTPUT_FILEPATH).parent / 'frames' / 'frame_')
     scene.render.film_transparent = False
+    scene.display.shading.background_type = 'WORLD'
+    scene.display.shading.background_color = COLOR_BACKGROUND[:3]
     world = bpy.data.worlds.new('Night / navy background')
     world.use_nodes = True
     world.node_tree.nodes.get('Background').inputs[0].default_value = COLOR_BACKGROUND
