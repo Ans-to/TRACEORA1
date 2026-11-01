@@ -122,11 +122,10 @@ def setup():
     scene.render.resolution_x, scene.render.resolution_y = RESOLUTION_X, RESOLUTION_Y
     scene.render.resolution_percentage = 100
     scene.render.fps, scene.frame_start, scene.frame_end = FPS, FRAME_START, FRAME_END
-    scene.render.image_settings.file_format = 'FFMPEG'
-    scene.render.ffmpeg.format = 'MPEG4'
-    scene.render.ffmpeg.codec = 'H264'
-    scene.render.ffmpeg.constant_rate_factor = 'HIGH'
-    scene.render.filepath = OUTPUT_FILEPATH
+    # Blender 5 on GitHub runners is built without its FFmpeg image output.
+    # Render lossless PNG frames; the workflow muxes them into H.264.
+    scene.render.image_settings.file_format = 'PNG'
+    scene.render.filepath = str(Path(OUTPUT_FILEPATH).parent / 'frames' / 'frame_')
     scene.render.film_transparent = False
     world = bpy.data.worlds.new('Night / navy background')
     world.use_nodes = True
@@ -212,7 +211,7 @@ if __name__ == '__main__':
         scene.render.filepath = str(Path(__file__).resolve().parent / 'render' / 'preview.png')
         bpy.ops.render.render(write_still=True)
     elif '--render' in sys.argv:
-        Path(OUTPUT_FILEPATH).parent.mkdir(parents=True, exist_ok=True)
+        (Path(OUTPUT_FILEPATH).parent / 'frames').mkdir(parents=True, exist_ok=True)
         bpy.ops.render.render(animation=True)
     else:
         print('Scene built. Pass -- --render to export the 15s MP4.')

@@ -28,7 +28,10 @@ jobs:
         run: |
           blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render > /tmp/render.log 2>&1
           tail -n 20 /tmp/render.log
-          test -s blender-tech-promo/render/tech_promo_15s.mp4 || { echo "::error::$(tail -c 3000 /tmp/render.log | tr '\n' ' ')"; exit 1; }
+          test -s blender-tech-promo/render/frames/frame_0450.png || { echo "::error::$(tail -c 3000 /tmp/render.log | tr '\n' ' ')"; exit 1; }
+      - name: Encode portrait H.264 MP4 from Blender frames
+        run: |
+          ffmpeg -hide_banner -loglevel error -framerate 30 -start_number 1 -i blender-tech-promo/render/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 21 -preset medium -movflags +faststart blender-tech-promo/render/tech_promo_15s.mp4
       - name: Check MP4
         run: |
           ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json blender-tech-promo/render/tech_promo_15s.mp4
@@ -42,5 +45,7 @@ jobs:
         if: always()
         with:
           name: blender-tech-promo-15s
-          path: blender-tech-promo/render/*
+          path: |
+            blender-tech-promo/render/tech_promo_15s.mp4
+            blender-tech-promo/render/preview.png
           if-no-files-found: warn
