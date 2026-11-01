@@ -51,18 +51,774 @@ jobs:
             geneva-sample/sample.mp4
             geneva-sample/review/*.png
           if-no-files-found: warn
-      # The sandbox cannot reach GitHub's artifact blob host. Transfer the
-      # already rendered bytes through GitHub's first-party check annotations.
-      - name: Transfer MP4 in numbered annotations
+      # GitHub check annotations permit ten 4 KB messages per step.
+      - name: Transfer bytes 000-009
+        env:
+          PART_OFFSET: '0'
         run: |
           python3 - <<'PYCODE'
-          import base64,pathlib
-          data=pathlib.Path('geneva-sample/sample.mp4').read_bytes()
-          print(f'MP4_BYTES={len(data)}',flush=True)
-          encoded=base64.b64encode(data).decode()
-          size=12000
-          chunks=[encoded[i:i+size] for i in range(0,len(encoded),size)]
-          print(f'MP4_PARTS={len(chunks)}',flush=True)
-          for i,chunk in enumerate(chunks):
-              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunk}',flush=True)
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 010-019
+        env:
+          PART_OFFSET: '10'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 020-029
+        env:
+          PART_OFFSET: '20'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 030-039
+        env:
+          PART_OFFSET: '30'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 040-049
+        env:
+          PART_OFFSET: '40'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 050-059
+        env:
+          PART_OFFSET: '50'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 060-069
+        env:
+          PART_OFFSET: '60'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 070-079
+        env:
+          PART_OFFSET: '70'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 080-089
+        env:
+          PART_OFFSET: '80'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 090-099
+        env:
+          PART_OFFSET: '90'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 100-109
+        env:
+          PART_OFFSET: '100'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 110-119
+        env:
+          PART_OFFSET: '110'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 120-129
+        env:
+          PART_OFFSET: '120'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 130-139
+        env:
+          PART_OFFSET: '130'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 140-149
+        env:
+          PART_OFFSET: '140'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 150-159
+        env:
+          PART_OFFSET: '150'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 160-169
+        env:
+          PART_OFFSET: '160'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 170-179
+        env:
+          PART_OFFSET: '170'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 180-189
+        env:
+          PART_OFFSET: '180'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 190-199
+        env:
+          PART_OFFSET: '190'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 200-209
+        env:
+          PART_OFFSET: '200'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 210-219
+        env:
+          PART_OFFSET: '210'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 220-229
+        env:
+          PART_OFFSET: '220'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 230-239
+        env:
+          PART_OFFSET: '230'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 240-249
+        env:
+          PART_OFFSET: '240'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 250-259
+        env:
+          PART_OFFSET: '250'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 260-269
+        env:
+          PART_OFFSET: '260'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 270-279
+        env:
+          PART_OFFSET: '270'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 280-289
+        env:
+          PART_OFFSET: '280'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 290-299
+        env:
+          PART_OFFSET: '290'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 300-309
+        env:
+          PART_OFFSET: '300'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 310-319
+        env:
+          PART_OFFSET: '310'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 320-329
+        env:
+          PART_OFFSET: '320'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 330-339
+        env:
+          PART_OFFSET: '330'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 340-349
+        env:
+          PART_OFFSET: '340'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 350-359
+        env:
+          PART_OFFSET: '350'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 360-369
+        env:
+          PART_OFFSET: '360'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 370-379
+        env:
+          PART_OFFSET: '370'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 380-389
+        env:
+          PART_OFFSET: '380'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 390-399
+        env:
+          PART_OFFSET: '390'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 400-409
+        env:
+          PART_OFFSET: '400'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 410-419
+        env:
+          PART_OFFSET: '410'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 420-429
+        env:
+          PART_OFFSET: '420'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 430-439
+        env:
+          PART_OFFSET: '430'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 440-449
+        env:
+          PART_OFFSET: '440'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 450-459
+        env:
+          PART_OFFSET: '450'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 460-469
+        env:
+          PART_OFFSET: '460'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 470-479
+        env:
+          PART_OFFSET: '470'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 480-489
+        env:
+          PART_OFFSET: '480'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 490-499
+        env:
+          PART_OFFSET: '490'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 500-509
+        env:
+          PART_OFFSET: '500'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 510-519
+        env:
+          PART_OFFSET: '510'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 520-529
+        env:
+          PART_OFFSET: '520'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 530-539
+        env:
+          PART_OFFSET: '530'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 540-549
+        env:
+          PART_OFFSET: '540'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 550-559
+        env:
+          PART_OFFSET: '550'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 560-569
+        env:
+          PART_OFFSET: '560'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 570-579
+        env:
+          PART_OFFSET: '570'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 580-589
+        env:
+          PART_OFFSET: '580'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 590-599
+        env:
+          PART_OFFSET: '590'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 600-609
+        env:
+          PART_OFFSET: '600'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 610-619
+        env:
+          PART_OFFSET: '610'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 620-629
+        env:
+          PART_OFFSET: '620'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 630-639
+        env:
+          PART_OFFSET: '630'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 640-649
+        env:
+          PART_OFFSET: '640'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 650-659
+        env:
+          PART_OFFSET: '650'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 660-669
+        env:
+          PART_OFFSET: '660'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 670-679
+        env:
+          PART_OFFSET: '670'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 680-689
+        env:
+          PART_OFFSET: '680'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
+          PYCODE
+      - name: Transfer bytes 690-699
+        env:
+          PART_OFFSET: '690'
+        run: |
+          python3 - <<'PYCODE'
+          import base64,os,pathlib
+          data=base64.b64encode(pathlib.Path('geneva-sample/sample.mp4').read_bytes()).decode()
+          chunks=[data[i:i+3900] for i in range(0,len(data),3900)]
+          for i in range(int(os.environ['PART_OFFSET']), min(int(os.environ['PART_OFFSET'])+10,len(chunks))):
+              print(f'::warning file=geneva-sample/sample.mp4,line={i+1},title=MP4PART::{chunks[i]}',flush=True)
           PYCODE
