@@ -1,0 +1,41 @@
+name: Render Blender tech promo
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'blender-tech-promo/**'
+      - '.github/workflows/blender-tech-promo.yml'
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender and ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender ffmpeg
+          blender --version | head -2
+      - name: Render preview frame
+        run: |
+          mkdir -p blender-tech-promo/render
+          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --preview
+      - name: Render 450 frames with Blender
+        run: blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render
+      - name: Check MP4
+        run: |
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json blender-tech-promo/render/tech_promo_15s.mp4
+          python3 - <<'PY'
+          import json,subprocess
+          p='blender-tech-promo/render/tech_promo_15s.mp4'
+          d=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','json',p]))
+          assert abs(float(d['format']['duration'])-15)<.1,d
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blender-tech-promo-15s
+          path: blender-tech-promo/render/*
+          if-no-files-found: warn
