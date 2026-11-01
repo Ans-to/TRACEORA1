@@ -21,9 +21,14 @@ jobs:
       - name: Render preview frame
         run: |
           mkdir -p blender-tech-promo/render
-          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --preview
+          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --preview > /tmp/preview.log 2>&1
+          tail -n 25 /tmp/preview.log
+          test -s blender-tech-promo/render/preview.png || { echo "::error::$(tail -c 3000 /tmp/preview.log | tr '\n' ' ')"; exit 1; }
       - name: Render 450 frames with Blender
-        run: blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render
+        run: |
+          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render > /tmp/render.log 2>&1
+          tail -n 20 /tmp/render.log
+          test -s blender-tech-promo/render/tech_promo_15s.mp4 || { echo "::error::$(tail -c 3000 /tmp/render.log | tr '\n' ' ')"; exit 1; }
       - name: Check MP4
         run: |
           ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json blender-tech-promo/render/tech_promo_15s.mp4
