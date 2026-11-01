@@ -18,4 +18,4 @@ geneva frame geneva-sample/sample.json -o still.png --at 7s
 geneva render geneva-sample/sample.json -o geneva-sample/sample.mp4
 ```
 
-Alternatively run the repository's **Render Geneva sample** GitHub Actions workflow. Its artifact contains the MP4 and three review stills. Download the playable MP4 from the workflow artifact; GitHub Actions does not have write permission to commit generated files to this branch.
+Alternatively run the repository's **Render Geneva sample** GitHub Actions workflow. Its artifact contains the MP4 and three review stills. The playable MP4 is committed at `geneva-sample/sample.mp4`; the workflow artifact also includes the video and review stills.
