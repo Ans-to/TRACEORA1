@@ -1,6 +1,11 @@
 name: Render Geneva sample
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "geneva-sample/*.json"
+      - "geneva-sample/assets/*.html"
+      - ".github/workflows/geneva-sample.yml"
 permissions:
   contents: write
 jobs:
