@@ -1,0 +1,68 @@
+{
+  "geneva": "1.1",
+  "output": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "duration": "15s"
+  },
+  "assets": {
+    "act1": {
+      "src": "assets/01-discover.html"
+    },
+    "act2": {
+      "src": "assets/02-build.html"
+    },
+    "act3": {
+      "src": "assets/03-release.html"
+    },
+    "score": {
+      "src": "assets/score.wav"
+    }
+  },
+  "layers": [
+    {
+      "id": "stickman",
+      "clips": [
+        {
+          "source": {
+            "kind": "html",
+            "asset": "act1"
+          },
+          "start": "0s",
+          "duration": "5s"
+        },
+        {
+          "source": {
+            "kind": "html",
+            "asset": "act2"
+          },
+          "start": "5s",
+          "duration": "5s"
+        },
+        {
+          "source": {
+            "kind": "html",
+            "asset": "act3"
+          },
+          "start": "10s",
+          "duration": "5s"
+        }
+      ]
+    }
+  ],
+  "audio": [
+    {
+      "id": "music",
+      "clips": [
+        {
+          "asset": "score",
+          "duration": "15s",
+          "fade_in": "0.3s",
+          "fade_out": "1s",
+          "gain_db": -5
+        }
+      ]
+    }
+  ]
+}
