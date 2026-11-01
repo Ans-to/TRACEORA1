@@ -1,0 +1,72 @@
+{
+  "geneva": "1.1",
+  "output": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "duration": "15s"
+  },
+  "assets": {
+    "scene1": {
+      "src": "assets/01-origin.html"
+    },
+    "scene2": {
+      "src": "assets/02-form.html"
+    },
+    "scene3": {
+      "src": "assets/03-possibility.html"
+    },
+    "music": {
+      "src": "assets/original-score.wav"
+    }
+  },
+  "layers": [
+    {
+      "id": "motion-graphics",
+      "clips": [
+        {
+          "id": "act-1",
+          "source": {
+            "kind": "html",
+            "asset": "scene1"
+          },
+          "start": "0s",
+          "duration": "5s"
+        },
+        {
+          "id": "act-2",
+          "source": {
+            "kind": "html",
+            "asset": "scene2"
+          },
+          "start": "5s",
+          "duration": "5s"
+        },
+        {
+          "id": "act-3",
+          "source": {
+            "kind": "html",
+            "asset": "scene3"
+          },
+          "start": "10s",
+          "duration": "5s"
+        }
+      ]
+    }
+  ],
+  "audio": [
+    {
+      "id": "original-score",
+      "clips": [
+        {
+          "asset": "music",
+          "start": "0s",
+          "duration": "15s",
+          "fade_in": "0.3s",
+          "fade_out": "1s",
+          "gain_db": -5
+        }
+      ]
+    }
+  ]
+}

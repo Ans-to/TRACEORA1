@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>@font-face{font-family:Inter;src:url("fonts/Inter-Bold.woff2");font-weight:700}
+@font-face{font-family:Inter;src:url("fonts/Inter-Regular.woff2");font-weight:400}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,sans-serif;color:#f4f4ed}
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;background:#101a24}
+.eyebrow{position:absolute;left:86px;top:67px;font-size:17px;letter-spacing:5px;color:#86f0d2;font-weight:700}
+.edition{position:absolute;right:86px;top:67px;font-size:17px;letter-spacing:3px;color:#a3afba}
+.rule{position:absolute;left:86px;top:110px;width:1108px;height:1px;background:#576a71}
+.footer{position:absolute;left:86px;bottom:52px;font-size:16px;letter-spacing:3px;color:#a3afba}
+.number{position:absolute;right:86px;bottom:45px;font-size:25px;letter-spacing:2px;color:#86f0d2}
+@keyframes lift{from{opacity:0;transform:translateY(42px)}to{opacity:1;transform:translateY(0px)}}
+@keyframes glide{from{opacity:0;transform:translateX(-85px)}to{opacity:1;transform:translateX(0px)}}
+@keyframes grow{from{opacity:0;transform:scale(.65)}to{opacity:1;transform:scale(1)}}
+@keyframes drift{from{transform:translateX(-32px)}to{transform:translateX(30px)}}
+@keyframes stretch{from{transform:scaleX(.05)}to{transform:scaleX(1)}}
+@keyframes reveal{from{opacity:0}to{opacity:1}}
+@keyframes float{from{transform:translateY(0px)}to{transform:translateY(-26px)}}
+
+.stage{background:linear-gradient(125deg,#172937,#163a42 55%,#163330)}
+.gridline{position:absolute;left:650px;top:140px;width:1px;height:470px;background:#48676c}
+.gridline.b{left:890px}.gridline.c{left:1130px}
+.horizontal{position:absolute;left:650px;top:242px;width:490px;height:1px;background:#48676c}
+.horizontal.b{top:482px}
+.block{position:absolute;left:703px;top:283px;width:155px;height:155px;background:#91ecc8;border-radius:14px;animation:grow .9s .8s ease-out both,float 1.6s 2s ease-in-out infinite alternate}
+.block.two{left:947px;top:304px;width:125px;height:125px;border:3px solid #e8f8eb;background:#365d60;border-radius:63px;animation:grow 1s 1.25s ease-out both,float 1.8s 2.3s ease-in-out infinite alternate}
+.bar{position:absolute;left:697px;top:525px;width:390px;height:10px;background:#e9c881;transform-origin:left center;animation:stretch 1s 1.9s ease-out both}
+.label{position:absolute;left:89px;top:210px;font-size:25px;letter-spacing:5px;color:#bccecb;animation:glide .7s .15s ease-out both}
+.title{position:absolute;left:81px;top:277px;font-size:136px;line-height:1.05;letter-spacing:-9px;font-weight:700;animation:lift 1s .5s ease-out both}
+.title .accent{color:#e9c881}
+.description{position:absolute;left:89px;top:528px;font-size:23px;color:#c2d2d0;animation:lift .8s 1.4s ease-out both}
+</style></head><body><div class="stage"><div class="eyebrow">GENEVA / A MOTION STUDY</div><div class="edition">02 — 03</div><div class="rule"></div><div class="gridline"></div><div class="gridline b"></div><div class="gridline c"></div><div class="horizontal"></div><div class="horizontal b"></div><div class="block"></div><div class="block two"></div><div class="bar"></div><div class="label">GIVE IT ROOM TO</div><div class="title">TAKE<br><span class="accent">SHAPE.</span></div><div class="description">Every frame turns an idea into a feeling.</div><div class="footer">IDEA → FORM → POSSIBILITY</div><div class="number">02 / 03</div></div></body></html>

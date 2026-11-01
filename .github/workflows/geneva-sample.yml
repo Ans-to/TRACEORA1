@@ -1,0 +1,51 @@
+name: Render Geneva sample
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'geneva-sample/**'
+      - '.github/workflows/geneva-sample.yml'
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Geneva v1.6.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/geneva
+          gh release download v1.6.0 --repo geneva-render/geneva --pattern 'geneva-v1.6.0-x86_64-unknown-linux-gnu.tar.gz' --dir /tmp/geneva
+          tar -xzf /tmp/geneva/*.tar.gz -C /tmp/geneva
+          find /tmp/geneva -type f -name geneva -exec cp {} /usr/local/bin/geneva \;
+          chmod +x /usr/local/bin/geneva
+          geneva --version
+      - name: Validate timeline and assets
+        run: geneva validate geneva-sample/sample.json --probe
+      - name: Render three review frames
+        run: |
+          mkdir -p geneva-sample/review
+          geneva frame geneva-sample/sample.json -o geneva-sample/review/01.png --at 2s
+          geneva frame geneva-sample/sample.json -o geneva-sample/review/02.png --at 7s
+          geneva frame geneva-sample/sample.json -o geneva-sample/review/03.png --at 12s
+      - name: Render fifteen-second MP4
+        run: geneva render geneva-sample/sample.json -o geneva-sample/sample.mp4
+      - name: Inspect output
+        run: |
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json geneva-sample/sample.mp4
+          python3 - <<'PY'
+          import json,subprocess
+          d=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','json','geneva-sample/sample.mp4']))
+          assert abs(float(d['format']['duration'])-15)<0.1,d
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geneva-sample-render
+          path: |
+            geneva-sample/sample.mp4
+            geneva-sample/review/*.png
+          if-no-files-found: warn

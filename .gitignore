@@ -12,3 +12,7 @@ delivery/
 remotion-dot-path/node_modules/
 remotion-dot-path/out/
 remotion-dot-path/.cache/
+.geneva-reference/
+.geneva-bin/
+.geneva-temp/
+node_modules/
