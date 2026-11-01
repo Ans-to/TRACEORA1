@@ -21,12 +21,12 @@ jobs:
       - name: Render preview frame
         run: |
           mkdir -p blender-tech-promo/render
-          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --preview > /tmp/preview.log 2>&1
+          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --preview > /tmp/preview.log 2>&1 || true
           tail -n 25 /tmp/preview.log
           test -s blender-tech-promo/render/preview.png || { echo "::error::$(tail -c 3000 /tmp/preview.log | tr '\n' ' ')"; exit 1; }
       - name: Render 450 frames with Blender
         run: |
-          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render > /tmp/render.log 2>&1
+          blender -b -t 2 --python blender-tech-promo/tech_promo.py -- --render > /tmp/render.log 2>&1 || true
           tail -n 20 /tmp/render.log
           test -s blender-tech-promo/render/frames/frame_0450.png || { echo "::error::$(tail -c 3000 /tmp/render.log | tr '\n' ' ')"; exit 1; }
       - name: Encode portrait H.264 MP4 from Blender frames
