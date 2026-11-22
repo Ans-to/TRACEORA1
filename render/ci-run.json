@@ -1,0 +1,11 @@
+{
+  "frames": "1-2",
+  "resolution": "1280x720",
+  "samples": "24",
+  "engine": "cycles",
+  "percent": "100",
+  "bloom": "0.5",
+  "tag": "cyberpunk-city-smoke",
+  "upload_frames": "true",
+  "render": "true"
+}
