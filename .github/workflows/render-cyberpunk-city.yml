@@ -54,6 +54,16 @@ on:
         type: choice
         options: ["false", "true"]
         default: "false"
+      profile:
+        description: "Quality profile (haze vs speed)"
+        type: choice
+        options: [thin_hero, thin, full, none]
+        default: thin_hero
+      variants:
+        description: "Benchmark one frame across quality profiles instead of rendering"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
   push:
     branches: [main, "arena/**"]
     paths:
@@ -95,6 +105,8 @@ jobs:
           IN_UPLOAD: ${{ inputs.upload_frames }}
           IN_RENDER: ${{ inputs.render }}
           IN_PREVIEW: ${{ inputs.preview }}
+          IN_PROFILE: ${{ inputs.profile }}
+          IN_VARIANTS: ${{ inputs.variants }}
         run: |
           set -euo pipefail
           cfg=render/ci-run.json
@@ -118,6 +130,8 @@ jobs:
           upload="$(pick upload_frames "$IN_UPLOAD"  'false')"
           do_render="$(pick render   "$IN_RENDER"  'true')"
           preview="$(pick preview  "$IN_PREVIEW" 'false')"
+          profile="$(pick profile  "$IN_PROFILE" 'thin_hero')"
+          variants="$(pick variants "$IN_VARIANTS" 'false')"
 
           case "$res" in
             1080p) res=1920x1080 ;;
@@ -142,8 +156,10 @@ jobs:
             echo "upload_frames=$upload"
             echo "render=$do_render"
             echo "preview=$preview"
+            echo "profile=$profile"
+            echo "variants=$variants"
           } >> "$GITHUB_OUTPUT"
-          echo "frames=$frames res=$res samples=$samples engine=$engine bloom=$bloom render=$do_render preview=$preview tag=$tag"
+          echo "frames=$frames res=$res samples=$samples engine=$engine bloom=$bloom render=$do_render preview=$preview profile=$profile variants=$variants tag=$tag"
 
       # ---------------------------------------------------------------
       # Toolchain
@@ -206,13 +222,17 @@ jobs:
           SAMPLES: ${{ steps.params.outputs.samples }}
           PERCENT: ${{ steps.params.outputs.percent }}
           DO_RENDER: ${{ steps.params.outputs.render }}
+          PROFILE: ${{ steps.params.outputs.profile }}
+          VARIANTS: ${{ steps.params.outputs.variants }}
         run: |
           set -euo pipefail
           rm -rf frames && mkdir -p frames
           extra=()
-          [ "$DO_RENDER" = "true" ] && extra+=(--render)
+          [ "$DO_RENDER" = "true" ] && [ "$VARIANTS" != "true" ] && extra+=(--render)
+          [ "$VARIANTS" = "true" ] && extra+=(--variants)
           common=(--engine "$ENGINE" --res "$RES" --samples "$SAMPLES"
-                  --percent "$PERCENT" --frames "$FRAMES" --out frames)
+                  --percent "$PERCENT" --frames "$FRAMES" --out frames
+                  --profile "$PROFILE")
 
           echo "== Blender version =="; blender --version | head -2
           if [ "$ENGINE" = "eevee" ] && [ "$DO_RENDER" = "true" ]; then
@@ -231,9 +251,9 @@ jobs:
           fi
 
           # surface scene stats + per-frame timings as readable annotations
-          grep -E '^\[(scene|render|stats)\]' blender.log | tail -40 | \
+          grep -E '^\[(scene|render|stats|variant)\]' blender.log | tail -40 | \
             while IFS= read -r line; do echo "::notice::$line"; done || true
-          grep -E '^\[(scene|stats|render)\]' blender.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          grep -E '^\[(scene|stats|render|variant)\]' blender.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
           if [ "$DO_RENDER" = "true" ]; then
             count=$(ls frames/*.png 2>/dev/null | wc -l)
@@ -244,8 +264,8 @@ jobs:
       # ---------------------------------------------------------------
       # Encode
       # ---------------------------------------------------------------
-      - name: Encode MP4 (bloom + grade double-check)
-        if: steps.params.outputs.render == 'true'
+      - name: Encode MP4 (bloom + grade)
+        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
         env:
           BLOOM: ${{ steps.params.outputs.bloom }}
           FRAMES: ${{ steps.params.outputs.frames }}
@@ -277,7 +297,7 @@ jobs:
       # Publish
       # ---------------------------------------------------------------
       - name: Upload MP4 artifact
-        if: steps.params.outputs.render == 'true'
+        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: neon-cyberpunk-city-mp4
@@ -322,7 +342,7 @@ jobs:
           git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push preview stills"
 
       - name: Publish release asset (public download link)
-        if: steps.params.outputs.render == 'true'
+        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.params.outputs.tag }}
