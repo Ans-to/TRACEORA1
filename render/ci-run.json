@@ -1,8 +1,8 @@
 {
-  "frames": "1-1",
-  "resolution": "960x540",
-  "samples": "16",
-  "engine": "cycles",
+  "frames": "1-2",
+  "resolution": "1280x720",
+  "samples": "24",
+  "engine": "eevee",
   "percent": "100",
   "bloom": "0.45",
   "tag": "cyberpunk-city-smoke",
@@ -10,5 +10,5 @@
   "render": "true",
   "preview": "true",
   "profile": "thin_hero",
-  "variants": "true"
+  "variants": "false"
 }

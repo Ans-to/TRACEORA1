@@ -238,7 +238,7 @@ def facade_material(name, window_strength=2.2):
 
     mapping = nt.nodes.new("ShaderNodeMapping")
     mapping.location = (-700, 0)
-    mapping.inputs["Scale"].default_value = (0.20, 0.20, 0.20)
+    mapping.inputs["Scale"].default_value = (0.35, 0.35, 0.35)
     L.new(geo.outputs["Position"], mapping.inputs["Vector"])
 
     brick = nt.nodes.new("ShaderNodeTexBrick")
@@ -249,9 +249,9 @@ def facade_material(name, window_strength=2.2):
     brick.inputs["Color1"].default_value = (1, 1, 1, 1)
     brick.inputs["Color2"].default_value = (1, 1, 1, 1)
     brick.inputs["Mortar"].default_value = (0, 0, 0, 1)
-    for sock, val in (("Scale", 1.0), ("Mortar Size", 0.085),
+    for sock, val in (("Scale", 1.0), ("Mortar Size", 0.10),
                       ("Mortar Smooth", 0.15), ("Bias", 0.0),
-                      ("Brick Width", 0.40), ("Row Height", 0.56)):
+                      ("Brick Width", 0.42), ("Row Height", 0.50)):
         if sock in brick.inputs:
             brick.inputs[sock].default_value = val
     L.new(mapping.outputs["Vector"], brick.inputs["Vector"])
@@ -273,8 +273,8 @@ def facade_material(name, window_strength=2.2):
 
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     ramp.location = (-240, -180)
-    ramp.color_ramp.elements[0].position = 0.40
-    ramp.color_ramp.elements[1].position = 0.52
+    ramp.color_ramp.elements[0].position = 0.47
+    ramp.color_ramp.elements[1].position = 0.60
     L.new(noise.outputs["Fac"], ramp.inputs["Fac"])
 
     mask = nt.nodes.new("ShaderNodeMath")
@@ -296,11 +296,11 @@ def facade_material(name, window_strength=2.2):
     tint.location = (-240, -420)
     cr = tint.color_ramp
     cr.elements[0].position = 0.0
-    cr.elements[0].color = (0.45, 0.78, 1.0, 1)      # cold cyan
+    cr.elements[0].color = (0.09, 0.28, 0.55, 1)      # cold cyan
     cr.elements[1].position = 1.0
-    cr.elements[1].color = (1.0, 0.66, 0.38, 1)      # warm tungsten
+    cr.elements[1].color = (0.60, 0.34, 0.11, 1)     # warm tungsten
     e = cr.elements.new(0.6)
-    e.color = (1.0, 0.35, 0.72, 1)                   # magenta
+    e.color = (0.50, 0.08, 0.30, 1)                  # magenta
     L.new(info.outputs["Random"], tint.inputs["Fac"])
 
     em = nt.nodes.new("ShaderNodeEmission")
@@ -363,7 +363,7 @@ clear_scene()
 scene = bpy.context.scene
 
 BUILDING_MATS = [facade_material(f"Facade_{i}", window_strength=s)
-                 for i, s in enumerate((1.6, 2.6, 2.1))]
+                 for i, s in enumerate((2.6, 4.0, 3.2))]
 ROOF_MAT = pbr_mat("RoofDeck", (0.018, 0.019, 0.024), roughness=0.8, metallic=0.2)
 STRIP_MATS = [emission_mat(f"NeonStrip_{i}", c, strength=9.0)
               for i, c in enumerate(NEON)]
@@ -450,66 +450,91 @@ build_billboards()
 ROOF_H = 40.0
 SLAB = 0.35
 ROOF_Z = ROOF_H + SLAB
+ROOF_HALF = 8.0          # hero tower footprint is 16 x 16 m
+PARAPET_H = 0.95
 
 
 def build_rooftop():
-    tower = cube("HeroTower", (22, 22, ROOF_H), (0, 0, ROOF_H / 2))
+    """16x16 roof box: parapet with neon cap, AC units, access hut, mast and
+    the TRACEORA sign standing on the front edge."""
+    tower = cube("HeroTower", (16, 16, ROOF_H), (0, 0, ROOF_H / 2))
     two_tone_facade(tower, BUILDING_MATS[1], ROOF_MAT)
 
-    cube("RoofSlab", (22.8, 22.8, SLAB), (0, 0, ROOF_H + SLAB / 2),
-         mat=pbr_mat("RoofSlabMat", (0.022, 0.023, 0.03), roughness=0.4,
-                     metallic=0.35))
+    cube("RoofSlab", (16.7, 16.7, SLAB), (0, 0, ROOF_H + SLAB / 2),
+         mat=pbr_mat("RoofSlabMat", (0.020, 0.021, 0.028), roughness=0.35,
+                     metallic=0.4))
 
-    rim_mat = emission_mat("RimCyan", (0.05, 0.80, 1.0), strength=14.0, hero=True)
+    # parapet walls around the edge
+    wall_mat = pbr_mat("Parapet", (0.028, 0.029, 0.036), roughness=0.5,
+                       metallic=0.3)
     for i, (dx, dy, sx, sy) in enumerate(((0, 1, 1, 0), (0, -1, 1, 0),
                                           (1, 0, 0, 1), (-1, 0, 0, 1))):
-        cube(f"Rim_{i}", (22.6 if sx else 0.16, 22.6 if sy else 0.16, 0.10),
-             (dx * 11.1, dy * 11.1, ROOF_Z + 0.06), mat=rim_mat)
+        cube(f"Parapet_{i}",
+             (16.4 if sx else 0.32, 16.4 if sy else 0.32, PARAPET_H),
+             (dx * 8.05, dy * 8.05, ROOF_Z + PARAPET_H / 2), mat=wall_mat)
 
-    floor_mat = emission_mat("RimMagenta", (1.0, 0.06, 0.5), strength=12.0,
+    # neon cap running along the top of the parapet
+    rim_mat = emission_mat("RimCyan", (0.05, 0.80, 1.0), strength=12.0, hero=True)
+    for i, (dx, dy, sx, sy) in enumerate(((0, 1, 1, 0), (0, -1, 1, 0),
+                                          (1, 0, 0, 1), (-1, 0, 0, 1))):
+        cube(f"Rim_{i}", (16.3 if sx else 0.14, 16.3 if sy else 0.14, 0.09),
+             (dx * 8.05, dy * 8.05, ROOF_Z + PARAPET_H + 0.02), mat=rim_mat)
+
+    # magenta floor strips washing the deck
+    floor_mat = emission_mat("RimMagenta", (1.0, 0.06, 0.5), strength=10.0,
                              hero=True)
     for i, dx in enumerate((-1, 1)):
-        cube(f"FloorStrip_{i}", (0.14, 16.0, 0.06),
-             (dx * 7.5, 2.0, ROOF_Z + 0.04), mat=floor_mat)
+        cube(f"FloorStrip_{i}", (0.14, 12.0, 0.06),
+             (dx * 5.6, 1.4, ROOF_Z + 0.04), mat=floor_mat)
 
-    for i, (px, py, dims) in enumerate(((-7.5, -6.5, (3.0, 2.2, 1.3)),
-                                        (-6.6, 6.8, (2.2, 3.4, 1.1)),
-                                        (8.2, 7.4, (2.6, 2.6, 1.5)))):
-        body = cube(f"AC_{i}", dims, (px, py, ROOF_Z + dims[2] / 2),
-                    mat=pbr_mat(f"ACMat_{i}", (0.04, 0.042, 0.05),
-                                roughness=0.55, metallic=0.5))
+    # rooftop machinery
+    ac_mat = pbr_mat("ACMat", (0.04, 0.042, 0.05), roughness=0.55, metallic=0.5)
+    for i, (px, py, dims) in enumerate(((5.1, -4.9, (2.6, 1.9, 1.15)),
+                                        (-5.0, 5.2, (2.0, 2.9, 0.95)),
+                                        (5.3, 5.1, (2.2, 2.2, 1.35)))):
+        body = cube(f"AC_{i}", dims, (px, py, ROOF_Z + dims[2] / 2), mat=ac_mat)
         apply_scale(body)
         add_bevel(body, 0.05, 2)
-        cube(f"ACVent_{i}", (dims[0] * 0.7, dims[1] * 0.7, 0.06),
+        cube(f"ACVent_{i}", (dims[0] * 0.72, dims[1] * 0.72, 0.05),
              (px, py, ROOF_Z + dims[2] + 0.02),
-             mat=emission_mat(f"ACGlow_{i}", (0.12, 0.85, 1.0), 3.5))
+             mat=emission_mat(f"ACGlow_{i}", (0.10, 0.80, 1.0), 2.6))
 
+    # stair / access hut in the back-left corner with a lit door frame
+    hut = cube("Hut", (3.4, 2.8, 2.5), (-5.4, -4.9, ROOF_Z + 1.25),
+               mat=pbr_mat("HutMat", (0.05, 0.05, 0.058), roughness=0.6,
+                           metallic=0.35))
+    apply_scale(hut)
+    add_bevel(hut, 0.04, 2)
+    cube("HutDoor", (0.9, 0.06, 1.9), (-4.7, -6.32, ROOF_Z + 0.95),
+         mat=emission_mat("HutDoorGlow", (0.9, 0.45, 0.15), 2.2))
+
+    # mast with a red beacon
     mast_mat = pbr_mat("Mast", (0.05, 0.05, 0.06), roughness=0.4, metallic=0.8)
-    cylinder("Mast", 0.20, 9.0, (8.6, -8.4, ROOF_Z + 4.5), mat=mast_mat, verts=10)
-    sphere("MastBeacon", 0.30, (8.6, -8.4, ROOF_Z + 9.1),
-           mat=emission_mat("Beacon", (1.0, 0.12, 0.16), 18.0))
+    cylinder("Mast", 0.16, 7.5, (6.6, -6.2, ROOF_Z + 3.75), mat=mast_mat, verts=10)
+    sphere("MastBeacon", 0.26, (6.6, -6.2, ROOF_Z + 7.6),
+           mat=emission_mat("Beacon", (1.0, 0.12, 0.16), 12.0))
 
-    # TRACEORA neon sign standing on the front edge
-    sign_mat = emission_mat("SignMagenta", (1.0, 0.10, 0.55), strength=18.0,
+    # TRACEORA neon sign on the front parapet
+    sign_mat = emission_mat("SignMagenta", (1.0, 0.10, 0.55), strength=7.0,
                             hero=True)
     frame_mat = pbr_mat("SignFrame", (0.02, 0.02, 0.025), roughness=0.5,
                         metallic=0.7)
-    bpy.ops.object.text_add(location=(0, -9.9, ROOF_Z + 0.15))
+    bpy.ops.object.text_add(location=(0, -8.28, ROOF_Z + 0.55))
     txt = bpy.context.object
     txt.name = "SignText"
     txt.data.body = "TRACEORA"
     txt.data.align_x = "CENTER"
     txt.data.align_y = "CENTER"
-    txt.data.size = 2.5
-    txt.data.extrude = 0.10
+    txt.data.size = 1.9
+    txt.data.extrude = 0.09
     txt.rotation_euler = (math.radians(90), 0, 0)
     txt.data.materials.append(sign_mat)
     activate(txt)
     bpy.ops.object.convert(target="MESH")
 
-    cube("SignBack", (17.0, 0.35, 3.6), (0, -10.35, ROOF_Z + 2.1), mat=frame_mat)
+    cube("SignBack", (12.6, 0.30, 2.7), (0, -8.55, ROOF_Z + 1.75), mat=frame_mat)
     for i, sx in enumerate((-1, 1)):
-        cube(f"SignPost_{i}", (0.25, 0.25, 3.4), (sx * 7.2, -10.3, ROOF_Z + 1.7),
+        cube(f"SignPost_{i}", (0.22, 0.22, 2.6), (sx * 5.4, -8.5, ROOF_Z + 1.3),
              mat=frame_mat)
 
 
@@ -647,8 +672,28 @@ wout = WNT.nodes.new("ShaderNodeOutputWorld")
 wout.location = (400, 0)
 wbg = WNT.nodes.new("ShaderNodeBackground")
 wbg.location = (150, 160)
-wbg.inputs["Color"].default_value = (0.008, 0.009, 0.022, 1.0)
-wbg.inputs["Strength"].default_value = 0.35
+wbg.inputs["Strength"].default_value = 0.9
+
+# dusk gradient: deep indigo zenith, magenta/amber light-pollution haze on the
+# horizon so the skyline has something to sit against.
+wtc = WNT.nodes.new("ShaderNodeTexCoord")
+wtc.location = (-700, 300)
+wsep = WNT.nodes.new("ShaderNodeSeparateXYZ")
+wsep.location = (-520, 300)
+WNT.links.new(wtc.outputs["Generated"], wsep.inputs["Vector"])
+wramp = WNT.nodes.new("ShaderNodeValToRGB")
+wramp.location = (-320, 300)
+wcr = wramp.color_ramp
+wcr.elements[0].position = 0.30
+wcr.elements[0].color = (0.004, 0.005, 0.015, 1)
+wcr.elements[1].position = 0.62
+wcr.elements[1].color = (0.045, 0.030, 0.075, 1)
+mid = wcr.elements.new(0.49)
+mid.color = (0.085, 0.035, 0.060, 1)       # warm light pollution at horizon
+horizon = wcr.elements.new(0.455)
+horizon.color = (0.16, 0.06, 0.085, 1)
+WNT.links.new(wsep.outputs["Z"], wramp.inputs["Fac"])
+WNT.links.new(wramp.outputs["Color"], wbg.inputs["Color"])
 WNT.links.new(wbg.outputs["Background"], wout.inputs["Surface"])
 
 HAZE = WNT.nodes.new("ShaderNodeVolumeScatter")
@@ -707,11 +752,14 @@ def add_area(name, loc, color, energy, size, target=(0, 0, CAR_Z + 0.9)):
     return obj
 
 
-add_area("KeyMagenta", (6.5, -8.0, CAR_Z + 4.2), (1.0, 0.30, 0.68), 900, 5.0)
-add_area("RimCyan", (-8.5, 8.5, CAR_Z + 3.6), (0.22, 0.80, 1.0), 1400, 4.5)
-add_area("FillViolet", (9.0, 8.0, CAR_Z + 2.2), (0.50, 0.25, 1.0), 420, 7.0)
-add_area("TopFill", (0.0, 0.0, CAR_Z + 8.0), (0.55, 0.72, 1.0), 550, 9.0,
+add_area("KeyMagenta", (5.5, -6.5, CAR_Z + 3.4), (1.0, 0.32, 0.70), 480, 4.0)
+add_area("RimCyan", (-6.5, 6.5, CAR_Z + 3.0), (0.20, 0.80, 1.0), 900, 3.5)
+add_area("FillViolet", (7.5, 7.0, CAR_Z + 2.0), (0.48, 0.24, 1.0), 260, 6.0)
+add_area("TopFill", (0.0, 0.0, CAR_Z + 7.0), (0.55, 0.72, 1.0), 320, 8.0,
          target=(0, 0, CAR_Z))
+# tight kicker so the man's face/silhouette reads against the skyline
+add_area("FaceKicker", (2.6, -3.4, CAR_TOP + 1.4), (0.75, 0.90, 1.0), 90, 1.4,
+         target=(0.2, 0.0, CAR_TOP + 0.9))
 
 sun_data = bpy.data.lights.new("MoonSun", type="SUN")
 sun_data.energy = 0.35
