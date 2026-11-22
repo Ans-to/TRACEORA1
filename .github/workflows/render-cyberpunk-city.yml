@@ -251,7 +251,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           MATRIX: ${{ needs.plan.outputs.matrix }}
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           rm -rf frames && mkdir -p frames
           START="${FRAMES%-*}"; END="${FRAMES#*-}"
           TOTAL=$(( END - START + 1 ))
@@ -321,6 +321,20 @@ jobs:
           echo "shard produced $count images"; du -sh frames
           [ "$count" -gt 0 ] || { echo "::error::shard $SHARD rendered nothing"; exit 1; }
 
+      - name: Publish shard log (shard 0)
+        if: always() && matrix.shard == 0
+        run: |
+          set -uo pipefail
+          [ -f blender.log ] || { echo "no blender.log"; exit 0; }
+          mkdir -p render/preview
+          cp blender.log render/preview/blender.log
+          git config user.name "render-bot"
+          git config user.email "render-bot@users.noreply.github.com"
+          git add render/preview/blender.log || exit 0
+          git commit -m "ci: blender log from run ${GITHUB_RUN_NUMBER} [skip ci]" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push log"
+
       - name: Upload shard frames
         if: always()
         uses: actions/upload-artifact@v4
@@ -381,23 +395,27 @@ jobs:
       - name: Publish preview stills (review)
         if: always() && needs.plan.outputs.preview == 'true'
         run: |
-          set -euo pipefail
+          set -uo pipefail
           shopt -s nullglob
-          files=($(ls frames/*.png | sort))
-          if [ ${#files[@]} -eq 0 ]; then echo "no frames to preview"; exit 0; fi
-          mkdir -p render/preview && rm -f render/preview/*.jpg
-          pick=("${files[0]}")
-          if [ ${#files[@]} -gt 2 ]; then pick+=("${files[${#files[@]}/2]}"); fi
-          if [ ${#files[@]} -gt 1 ]; then pick+=("${files[${#files[@]}-1]}"); fi
-          for f in "${pick[@]}"; do
-            base=$(basename "$f" .png)
-            ffmpeg -hide_banner -loglevel error -y -i "$f" -vf "scale=1000:-1" \
-              -q:v 4 "render/preview/${base}.jpg"
-          done
-          ls -la render/preview
+          files=(frames/*.png)
+          mkdir -p render/preview
+          rm -f render/preview/*.jpg
+          if [ ${#files[@]} -gt 0 ]; then
+            pick=("${files[0]}")
+            if [ ${#files[@]} -gt 2 ]; then pick+=("${files[${#files[@]}/2]}"); fi
+            if [ ${#files[@]} -gt 1 ]; then pick+=("${files[${#files[@]}-1]}"); fi
+            for f in "${pick[@]}"; do
+              base=$(basename "$f" .png)
+              ffmpeg -hide_banner -loglevel error -y -i "$f" -vf "scale=1000:-1" \
+                -q:v 4 "render/preview/${base}.jpg" || echo "encode failed for $f"
+            done
+          else
+            echo "no frames to preview"
+          fi
+          ls -la render/preview || true
           git config user.name "render-bot"
           git config user.email "render-bot@users.noreply.github.com"
-          git add render/preview
+          git add render/preview || exit 0
           git commit -m "ci: preview stills from run ${GITHUB_RUN_NUMBER} [skip ci]" || exit 0
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push preview stills"
