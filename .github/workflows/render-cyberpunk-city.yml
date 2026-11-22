@@ -1,20 +1,19 @@
 name: Render Neon Cyberpunk City (drone shot)
 
-# Renders render/neon_cyberpunk_city.py with Blender on a GitHub runner,
-# encodes an H.264 MP4, then publishes it as a public release asset so the
+# Renders render/neon_cyberpunk_city.py with Blender on GitHub runners,
+# encodes an H.264 MP4 and publishes it as a public release asset, so the
 # download link works without a GitHub login.
 #
-# Two ways to start it:
-#   1. Actions tab -> "Render Neon Cyberpunk City (drone shot)" -> Run workflow
-#   2. Edit render/ci-run.json and push it (that is what the agent loop uses):
-#      {"frames":"1-150","resolution":"1920x1080","samples":"32","engine":"cycles",
-#       "bloom":"0.5","tag":"cyberpunk-city","render":"true"}
+# The shot is split across parallel shards (matrix jobs), which is the only
+# way to get a 1080p path-traced animation done inside a sensible wall time.
+#
+# Start it from the Actions tab, or by editing render/ci-run.json and pushing.
 
 on:
   workflow_dispatch:
     inputs:
       frames:
-        description: "Frame range (e.g. 1-150); 24 frames = 1 second"
+        description: "Frame range of the shot (e.g. 1-150); 24 frames = 1 second"
         default: "1-150"
         required: true
       resolution:
@@ -22,20 +21,28 @@ on:
         default: "1920x1080"
         required: true
       samples:
-        description: "Cycles samples (24-64 sane; higher = cleaner + slower)"
-        default: "32"
+        description: "Samples per pixel (16-32 with denoising is plenty)"
+        default: "20"
         required: true
       engine:
         description: "Render engine"
         type: choice
         options: [cycles, eevee]
         default: cycles
+      shards:
+        description: "Parallel runners (1-8); each renders an equal slice of frames"
+        default: "6"
       percent:
         description: "Resolution percentage (100 = full)"
         default: "100"
       bloom:
         description: "Post bloom strength 0-1 (0 disables)"
         default: "0.5"
+      profile:
+        description: "Quality profile (atmospherics vs speed)"
+        type: choice
+        options: [thin_hero, thin, full, none]
+        default: thin_hero
       tag:
         description: "Release tag (stable download URL)"
         default: "cyberpunk-city"
@@ -44,31 +51,27 @@ on:
         type: choice
         options: ["false", "true"]
         default: "false"
-      render:
-        description: "Set false to only build/validate the scene (no render)"
-        type: choice
-        options: ["true", "false"]
-        default: "true"
       preview:
         description: "Commit small preview stills to render/preview/ for review"
         type: choice
         options: ["false", "true"]
         default: "false"
-      profile:
-        description: "Quality profile (haze vs speed)"
-        type: choice
-        options: [thin_hero, thin, full, none]
-        default: thin_hero
       variants:
         description: "Benchmark one frame across quality profiles instead of rendering"
         type: choice
         options: ["false", "true"]
         default: "false"
+      render:
+        description: "Set false to only build/validate the scene (no render)"
+        type: choice
+        options: ["true", "false"]
+        default: "true"
   push:
     branches: [main, "arena/**"]
     paths:
       - "render/ci-run.json"
       - ".github/workflows/render-cyberpunk-city.yml"
+      - "render/neon_cyberpunk_city.py"
 
 permissions:
   contents: write
@@ -81,19 +84,31 @@ env:
   MP4: neon-cyberpunk-city-drone.mp4
 
 jobs:
-  render:
-    name: Blender render + encode
+  # -------------------------------------------------------------------
+  # 1. Resolve parameters (workflow inputs, or render/ci-run.json on push)
+  # -------------------------------------------------------------------
+  plan:
+    name: Plan
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    outputs:
+      frames: ${{ steps.p.outputs.frames }}
+      res: ${{ steps.p.outputs.res }}
+      samples: ${{ steps.p.outputs.samples }}
+      engine: ${{ steps.p.outputs.engine }}
+      percent: ${{ steps.p.outputs.percent }}
+      bloom: ${{ steps.p.outputs.bloom }}
+      tag: ${{ steps.p.outputs.tag }}
+      upload_frames: ${{ steps.p.outputs.upload_frames }}
+      preview: ${{ steps.p.outputs.preview }}
+      profile: ${{ steps.p.outputs.profile }}
+      variants: ${{ steps.p.outputs.variants }}
+      render: ${{ steps.p.outputs.render }}
+      shards: ${{ steps.p.outputs.shards }}
+      matrix: ${{ steps.p.outputs.matrix }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # ---------------------------------------------------------------
-      # Parameters (workflow inputs, or render/ci-run.json on push)
-      # ---------------------------------------------------------------
+      - uses: actions/checkout@v4
       - name: Resolve parameters
-        id: params
+        id: p
         env:
           IN_FRAMES: ${{ inputs.frames }}
           IN_RES: ${{ inputs.resolution }}
@@ -107,6 +122,7 @@ jobs:
           IN_PREVIEW: ${{ inputs.preview }}
           IN_PROFILE: ${{ inputs.profile }}
           IN_VARIANTS: ${{ inputs.variants }}
+          IN_SHARDS: ${{ inputs.shards }}
         run: |
           set -euo pipefail
           cfg=render/ci-run.json
@@ -122,28 +138,32 @@ jobs:
           }
           frames="$(pick frames        "$IN_FRAMES"  '1-150')"
           res="$(pick resolution      "$IN_RES"     '1920x1080')"
-          samples="$(pick samples      "$IN_SAMPLES" '32')"
-          engine="$(pick engine       "$IN_ENGINE"  'cycles')"
-          percent="$(pick percent      "$IN_PERCENT" '100')"
-          bloom="$(pick bloom        "$IN_BLOOM"   '0.5')"
-          tag="$(pick tag          "$IN_TAG"     'cyberpunk-city')"
+          samples="$(pick samples       "$IN_SAMPLES" '20')"
+          engine="$(pick engine        "$IN_ENGINE"  'cycles')"
+          percent="$(pick percent       "$IN_PERCENT" '100')"
+          bloom="$(pick bloom         "$IN_BLOOM"   '0.5')"
+          tag="$(pick tag           "$IN_TAG"     'cyberpunk-city')"
           upload="$(pick upload_frames "$IN_UPLOAD"  'false')"
-          do_render="$(pick render   "$IN_RENDER"  'true')"
-          preview="$(pick preview  "$IN_PREVIEW" 'false')"
-          profile="$(pick profile  "$IN_PROFILE" 'thin_hero')"
-          variants="$(pick variants "$IN_VARIANTS" 'false')"
+          do_render="$(pick render        "$IN_RENDER"  'true')"
+          preview="$(pick preview       "$IN_PREVIEW" 'false')"
+          profile="$(pick profile       "$IN_PROFILE" 'thin_hero')"
+          variants="$(pick variants      "$IN_VARIANTS" 'false')"
+          shards="$(pick shards        "$IN_SHARDS"  '6')"
 
           case "$res" in
             1080p) res=1920x1080 ;;
             720p)  res=1280x720 ;;
             540p)  res=960x540 ;;
           esac
-          if ! printf '%s' "$frames" | grep -qE '^[0-9]+-[0-9]+$'; then
-            echo "::error::frames must look like 1-150 (got '$frames')"; exit 1
-          fi
-          if ! printf '%s' "$res" | grep -qE '^[0-9]+x[0-9]+$'; then
-            echo "::error::resolution must look like 1920x1080 (got '$res')"; exit 1
-          fi
+          printf '%s' "$frames" | grep -qE '^[0-9]+-[0-9]+$' || {
+            echo "::error::frames must look like 1-150 (got '$frames')"; exit 1; }
+          printf '%s' "$res" | grep -qE '^[0-9]+x[0-9]+$' || {
+            echo "::error::resolution must look like 1920x1080 (got '$res')"; exit 1; }
+          # benchmark / build-only runs never shard
+          if [ "$variants" = "true" ] || [ "$do_render" != "true" ]; then shards=1; fi
+          [ "$shards" -ge 1 ] 2>/dev/null || shards=1
+          [ "$shards" -le 8 ] || shards=8
+          matrix=$(python3 -c "import json,sys;print(json.dumps({'shard':list(range(int(sys.argv[1])))}))" "$shards")
 
           {
             echo "frames=$frames"
@@ -158,12 +178,30 @@ jobs:
             echo "preview=$preview"
             echo "profile=$profile"
             echo "variants=$variants"
+            echo "shards=$shards"
+            echo "matrix=$matrix"
           } >> "$GITHUB_OUTPUT"
-          echo "frames=$frames res=$res samples=$samples engine=$engine bloom=$bloom render=$do_render preview=$preview profile=$profile variants=$variants tag=$tag"
+          echo "frames=$frames res=$res samples=$samples engine=$engine profile=$profile shards=$shards render=$do_render"
+          {
+            echo "### Render plan"
+            echo "- frames: \`$frames\` @ $res, $samples samples, engine \`$engine\`, profile \`$profile\`"
+            echo "- shards: $shards, bloom $bloom, release tag \`$tag\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      # ---------------------------------------------------------------
-      # Toolchain
-      # ---------------------------------------------------------------
+  # -------------------------------------------------------------------
+  # 2. Render (one matrix job per shard)
+  # -------------------------------------------------------------------
+  render:
+    name: Render shard ${{ matrix.shard }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Cache Blender
         uses: actions/cache@v4
         with:
@@ -193,49 +231,55 @@ jobs:
           fi
           echo "$HOME/blender-bin" >> "$GITHUB_PATH"
 
-      - name: Install ffmpeg
-        run: |
-          set -euo pipefail
-          if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
-            echo "ffmpeg already present: $(ffmpeg -version | head -1)"
-          else
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq ffmpeg
-            ffmpeg -version | head -1
-          fi
-
       - name: Install software GL (EEVEE only)
-        if: steps.params.outputs.engine == 'eevee'
+        if: needs.plan.outputs.engine == 'eevee'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libgl1 libegl1 libglx-mesa0 \
             libxi6 libxxf86vm1 libxrender1 libxfixes3 libsm6 libxkbcommon0
 
-      # ---------------------------------------------------------------
-      # Render
-      # ---------------------------------------------------------------
-      - name: Build scene / render frames
+      - name: Render shard ${{ matrix.shard }}
         env:
-          ENGINE: ${{ steps.params.outputs.engine }}
-          FRAMES: ${{ steps.params.outputs.frames }}
-          RES: ${{ steps.params.outputs.res }}
-          SAMPLES: ${{ steps.params.outputs.samples }}
-          PERCENT: ${{ steps.params.outputs.percent }}
-          DO_RENDER: ${{ steps.params.outputs.render }}
-          PROFILE: ${{ steps.params.outputs.profile }}
-          VARIANTS: ${{ steps.params.outputs.variants }}
+          ENGINE: ${{ needs.plan.outputs.engine }}
+          FRAMES: ${{ needs.plan.outputs.frames }}
+          RES: ${{ needs.plan.outputs.res }}
+          SAMPLES: ${{ needs.plan.outputs.samples }}
+          PERCENT: ${{ needs.plan.outputs.percent }}
+          PROFILE: ${{ needs.plan.outputs.profile }}
+          VARIANTS: ${{ needs.plan.outputs.variants }}
+          DO_RENDER: ${{ needs.plan.outputs.render }}
+          SHARD: ${{ matrix.shard }}
+          MATRIX: ${{ needs.plan.outputs.matrix }}
         run: |
           set -euo pipefail
           rm -rf frames && mkdir -p frames
-          extra=()
-          [ "$DO_RENDER" = "true" ] && [ "$VARIANTS" != "true" ] && extra+=(--render)
-          [ "$VARIANTS" = "true" ] && extra+=(--variants)
-          common=(--engine "$ENGINE" --res "$RES" --samples "$SAMPLES"
-                  --percent "$PERCENT" --frames "$FRAMES" --out frames
-                  --profile "$PROFILE")
+          START="${FRAMES%-*}"; END="${FRAMES#*-}"
+          TOTAL=$(( END - START + 1 ))
+          SHARDS=$(printf '%s' "$MATRIX" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['shard']))")
+          BASE=$(( TOTAL / SHARDS )); EXTRA=$(( TOTAL % SHARDS ))
+          if [ "$SHARD" -lt "$EXTRA" ]; then
+            COUNT=$(( BASE + 1 )); OFFSET=$(( SHARD * (BASE + 1) ))
+          else
+            COUNT=$BASE; OFFSET=$(( EXTRA * (BASE + 1) + (SHARD - EXTRA) * BASE ))
+          fi
+          if [ "$COUNT" -le 0 ]; then echo "shard $SHARD has no frames; nothing to do"; exit 0; fi
+          S=$(( START + OFFSET )); E=$(( S + COUNT - 1 ))
+          echo "shard $SHARD/$SHARDS renders frames $S-$E ($COUNT of $TOTAL), shot $START-$END"
 
-          echo "== Blender version =="; blender --version | head -2
-          if [ "$ENGINE" = "eevee" ] && [ "$DO_RENDER" = "true" ]; then
+          extra=()
+          if [ "$VARIANTS" = "true" ]; then
+            extra+=(--variants)
+          elif [ "$DO_RENDER" = "true" ]; then
+            extra+=(--render)
+          else
+            echo "build-only validation run (render=false)"
+          fi
+          common=(--engine "$ENGINE" --res "$RES" --samples "$SAMPLES"
+                  --percent "$PERCENT" --frames "$S-$E" --shot "$START-$END"
+                  --out frames --profile "$PROFILE")
+
+          echo "== Blender =="; blender --version | head -2
+          if [ "$ENGINE" = "eevee" ]; then
             export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
             xvfb-run -a -s "-screen 0 1920x1080x24" \
               blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
@@ -243,39 +287,117 @@ jobs:
                 echo "::warning title=EEVEE failed::Falling back to Cycles"
                 blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
                   --render --engine cycles --res "$RES" --samples "$SAMPLES" \
-                  --percent "$PERCENT" --frames "$FRAMES" --out frames 2>&1 | tee blender.log
+                  --percent "$PERCENT" --frames "$S-$E" --shot "$START-$END" \
+                  --out frames --profile "$PROFILE" 2>&1 | tee blender.log
               }
           else
             blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
               "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log
           fi
 
-          # surface scene stats + per-frame timings as readable annotations
           grep -E '^\[(scene|render|stats|variant)\]' blender.log | tail -40 | \
             while IFS= read -r line; do echo "::notice::$line"; done || true
-          grep -E '^\[(scene|stats|render|variant)\]' blender.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          grep -E '^\[(scene|stats|render|variant)\]' blender.log \
+            >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
-          if [ "$DO_RENDER" = "true" ]; then
-            count=$(ls frames/*.png 2>/dev/null | wc -l)
-            echo "Rendered $count frames"; du -sh frames
-            [ "$count" -gt 0 ] || { echo "::error::no frames rendered"; exit 1; }
-          fi
+          count=$(ls frames/*.png 2>/dev/null | wc -l)
+          echo "shard produced $count images"; du -sh frames
+          [ "$count" -gt 0 ] || { echo "::error::shard $SHARD rendered nothing"; exit 1; }
 
-      # ---------------------------------------------------------------
-      # Encode
-      # ---------------------------------------------------------------
-      - name: Encode MP4 (bloom + grade)
-        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
-        env:
-          BLOOM: ${{ steps.params.outputs.bloom }}
-          FRAMES: ${{ steps.params.outputs.frames }}
+      - name: Upload shard frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frames-${{ matrix.shard }}
+          path: frames/*.png
+          retention-days: 7
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------------
+  # 3. Encode + publish
+  # -------------------------------------------------------------------
+  finalize:
+    name: Encode + publish
+    needs: [plan, render]
+    if: always() && needs.plan.outputs.render == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
         run: |
           set -euo pipefail
-          START="${FRAMES%-*}"
-          COUNT=$(ls frames/*.png | wc -l)
-          echo "encoding $COUNT frames from $START"
+          if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
+            ffmpeg -version | head -1
+          else
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
 
-          grade="eq=contrast=1.06:saturation=1.14,vignette=angle=PI/4.5"
+      - name: Download rendered frames
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: frames-*
+          merge-multiple: true
+          path: frames
+
+      - name: Collect + verify frames
+        id: verify
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(frames/*.png)
+          COUNT=${#files[@]}
+          START="${{ needs.plan.outputs.frames }}"; START="${START%-*}"
+          TOTAL="${{ needs.plan.outputs.frames }}"
+          TOTAL=$(( ${TOTAL#*-} - ${TOTAL%-*} + 1 ))
+          echo "found $COUNT frames, shot needs $TOTAL"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "start=$START" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -lt "$TOTAL" ]; then
+            echo "::warning::only $COUNT/$TOTAL frames arrived (a shard likely failed)"
+          fi
+
+      - name: Publish preview stills (review)
+        if: always() && needs.plan.outputs.preview == 'true'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=($(ls frames/*.png | sort))
+          if [ ${#files[@]} -eq 0 ]; then echo "no frames to preview"; exit 0; fi
+          mkdir -p render/preview && rm -f render/preview/*.jpg
+          pick=("${files[0]}")
+          if [ ${#files[@]} -gt 2 ]; then pick+=("${files[${#files[@]}/2]}"); fi
+          if [ ${#files[@]} -gt 1 ]; then pick+=("${files[${#files[@]}-1]}"); fi
+          for f in "${pick[@]}"; do
+            base=$(basename "$f" .png)
+            ffmpeg -hide_banner -loglevel error -y -i "$f" -vf "scale=1000:-1" \
+              -q:v 4 "render/preview/${base}.jpg"
+          done
+          ls -la render/preview
+          git config user.name "render-bot"
+          git config user.email "render-bot@users.noreply.github.com"
+          git add render/preview
+          git commit -m "ci: preview stills from run ${GITHUB_RUN_NUMBER} [skip ci]" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push preview stills"
+
+      - name: Encode MP4 (bloom + grade)
+        if: needs.render.result == 'success' && needs.plan.outputs.variants != 'true'
+        env:
+          BLOOM: ${{ needs.plan.outputs.bloom }}
+        run: |
+          set -euo pipefail
+          START="${{ steps.verify.outputs.start }}"
+          COUNT="${{ steps.verify.outputs.count }}"
+          TOTAL="${{ steps.verify.outputs.total }}"
+          [ "$COUNT" -gt 0 ] || { echo "::error::nothing to encode"; exit 1; }
+          [ "$COUNT" -ge "$TOTAL" ] || { echo "::error::$COUNT/$TOTAL frames, refusing to publish a truncated video"; exit 1; }
+
+          grade="eq=contrast=1.07:saturation=1.16,vignette=angle=PI/4.5"
           if awk "BEGIN{exit !($BLOOM > 0)}"; then
             fc="[0:v]split=2[base][bl];[bl]gblur=sigma=22:steps=3,colorlevels=rimin=0.55:gimin=0.55:bimin=0.55[glow];[base][glow]blend=all_mode=screen:all_opacity=${BLOOM}[mix];[mix]${grade}[v]"
           else
@@ -288,16 +410,13 @@ jobs:
             -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \
             -movflags +faststart -g 48 "$MP4"
 
-          ffmpeg -hide_banner -y -ss 1.5 -i "$MP4" -frames:v 1 -q:v 2 poster.jpg || true
+          ffmpeg -hide_banner -y -ss 2 -i "$MP4" -frames:v 1 -q:v 2 poster.jpg || true
           ffprobe -hide_banner -v error -show_entries \
             format=duration,size:stream=width,height,nb_frames \
             -of default=noprint_wrappers=1 "$MP4"
 
-      # ---------------------------------------------------------------
-      # Publish
-      # ---------------------------------------------------------------
       - name: Upload MP4 artifact
-        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
+        if: always() && hashFiles('neon-cyberpunk-city-drone.mp4') != ''
         uses: actions/upload-artifact@v4
         with:
           name: neon-cyberpunk-city-mp4
@@ -306,50 +425,23 @@ jobs:
             poster.jpg
           retention-days: 30
 
-      - name: Upload debug stills
-        if: always() && steps.params.outputs.upload_frames == 'true'
+      - name: Upload raw frames (optional)
+        if: always() && needs.plan.outputs.upload_frames == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: neon-cyberpunk-city-frames
           path: frames/*.png
           retention-days: 7
 
-      # Small JPEG stills committed back to the branch purely so reviewers
-      # (and the agent that drives this workflow) can eyeball the render
-      # without downloading large artifacts.
-      - name: Publish preview stills
-        if: always() && steps.params.outputs.preview == 'true'
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          files=(frames/*.png)
-          if [ ${#files[@]} -eq 0 ]; then echo "no frames to preview"; exit 0; fi
-          mkdir -p render/preview
-          pick=("${files[0]}")
-          if [ ${#files[@]} -gt 1 ]; then pick+=("${files[${#files[@]}/2]}"); fi
-          if [ ${#files[@]} -gt 2 ]; then pick+=("${files[${#files[@]}-1]}"); fi
-          for f in "${pick[@]}"; do
-            base=$(basename "$f" .png)
-            ffmpeg -hide_banner -loglevel error -y -i "$f" -vf "scale=900:-1" \
-              -q:v 4 "render/preview/${base}.jpg"
-          done
-          ls -la render/preview
-          git config user.name "render-bot"
-          git config user.email "render-bot@users.noreply.github.com"
-          git add render/preview
-          git commit -m "ci: preview stills from run ${GITHUB_RUN_NUMBER} [skip ci]" || exit 0
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
-          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push preview stills"
-
       - name: Publish release asset (public download link)
-        if: steps.params.outputs.render == 'true' && steps.params.outputs.variants != 'true'
+        if: success() && hashFiles('neon-cyberpunk-city-drone.mp4') != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.params.outputs.tag }}
-          FRAMES: ${{ steps.params.outputs.frames }}
-          RES: ${{ steps.params.outputs.res }}
-          ENGINE: ${{ steps.params.outputs.engine }}
-          SAMPLES: ${{ steps.params.outputs.samples }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          FRAMES: ${{ needs.plan.outputs.frames }}
+          RES: ${{ needs.plan.outputs.res }}
+          ENGINE: ${{ needs.plan.outputs.engine }}
+          SAMPLES: ${{ needs.plan.outputs.samples }}
         run: |
           set -euo pipefail
           gh release view "$TAG" >/dev/null 2>&1 || \
@@ -365,9 +457,9 @@ jobs:
             echo ""
             echo "**Download (MP4, direct, no login):** $URL"
             echo ""
-            echo "| frames | resolution | engine | samples |"
-            echo "|---|---|---|---|"
-            echo "| $FRAMES | $RES | $ENGINE | $SAMPLES |"
+            echo "| frames | resolution | engine | samples | shards |"
+            echo "|---|---|---|---|---|"
+            echo "| $FRAMES | $RES | $ENGINE | $SAMPLES | ${{ needs.plan.outputs.shards }} |"
             echo ""
             echo "Artifact: \`neon-cyberpunk-city-mp4\` on this run."
           } >> "$GITHUB_STEP_SUMMARY"

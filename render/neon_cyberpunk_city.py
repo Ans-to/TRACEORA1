@@ -58,6 +58,7 @@ def parse_args():
     p.add_argument("--percent", type=int, default=100)
     p.add_argument("--samples", type=int, default=32)
     p.add_argument("--frames", default="1-150")
+    p.add_argument("--shot", default="")
     p.add_argument("--out", default="render_out")
     p.add_argument("--render", action="store_true")
     p.add_argument("--variants", action="store_true")
@@ -69,12 +70,15 @@ def parse_args():
 
 ARGS = parse_args() or type(
     "D", (), dict(engine="cycles", res="1920x1080", percent=100, samples=32,
-                  frames="1-150", out="render_out", render=False, variants=False,
-                  profile="thin_hero", glare=False, seed=42)
+                  frames="1-150", shot="", out="render_out", render=False,
+                  variants=False, profile="thin_hero", glare=False, seed=42)
 )()
 
 RES_X, RES_Y = (int(v) for v in ARGS.res.lower().split("x"))
+# FRAME_START/END = what this process renders, SHOT_START/END = the full shot
+# the camera path is authored over (so the shot can be rendered in shards).
 FRAME_START, FRAME_END = (int(v) for v in ARGS.frames.split("-"))
+SHOT_START, SHOT_END = (int(v) for v in (ARGS.shot or ARGS.frames).split("-"))
 RNG = random.Random(ARGS.seed)
 
 
@@ -210,13 +214,14 @@ def pbr_mat(name, color, roughness=0.4, metallic=0.2, extra=None):
     return mat
 
 
-def facade_material(name, window_strength=2.2):
+def facade_material(name, window_strength=4.5):
     """
     Dark curtain-wall tower with a punched grid of lit windows.
 
-    Geometry->Position (world space) keeps window size identical on every
-    building. Brick texture gives the glass rectangles, a noise mask switches
-    whole clumps of windows off, and per-object random picks the tint.
+    Brick textures are 2D, so an axis-aligned box needs one projection per
+    wall direction: (y,z) for X-facing walls and (x,z) for Y-facing walls,
+    blended by the surface normal. World-space position keeps the window
+    size identical on every building regardless of its scale.
     """
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -225,91 +230,124 @@ def facade_material(name, window_strength=2.2):
     L = nt.links
 
     out = nt.nodes.new("ShaderNodeOutputMaterial")
-    out.location = (900, 0)
+    out.location = (1100, 0)
 
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
-    bsdf.location = (500, -220)
-    bsdf.inputs["Base Color"].default_value = (0.010, 0.012, 0.019, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.22
-    bsdf.inputs["Metallic"].default_value = 0.75
+    bsdf.location = (700, -260)
+    bsdf.inputs["Base Color"].default_value = (0.012, 0.014, 0.022, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.20
+    bsdf.inputs["Metallic"].default_value = 0.80
 
     geo = nt.nodes.new("ShaderNodeNewGeometry")
-    geo.location = (-900, 0)
+    geo.location = (-1200, 0)
+    psep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    psep.location = (-1020, 120)
+    L.new(geo.outputs["Position"], psep.inputs["Vector"])
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nsep.location = (-1020, -420)
+    L.new(geo.outputs["Normal"], nsep.inputs["Vector"])
 
-    mapping = nt.nodes.new("ShaderNodeMapping")
-    mapping.location = (-700, 0)
-    mapping.inputs["Scale"].default_value = (0.35, 0.35, 0.35)
-    L.new(geo.outputs["Position"], mapping.inputs["Vector"])
+    def brick_mask(src_a, src_b, y):
+        """1.0 on window glass, 0.0 on mullions/spandrels."""
+        comb = nt.nodes.new("ShaderNodeCombineXYZ")
+        comb.location = (-840, y)
+        L.new(src_a, comb.inputs["X"])
+        L.new(src_b, comb.inputs["Y"])
+        mapping = nt.nodes.new("ShaderNodeMapping")
+        mapping.location = (-660, y)
+        mapping.inputs["Scale"].default_value = (0.35, 0.35, 0.35)
+        L.new(comb.outputs["Vector"], mapping.inputs["Vector"])
+        brick = nt.nodes.new("ShaderNodeTexBrick")
+        brick.location = (-470, y)
+        brick.offset = 0.5
+        brick.offset_frequency = 2
+        brick.squash = 1.0
+        brick.inputs["Color1"].default_value = (1, 1, 1, 1)
+        brick.inputs["Color2"].default_value = (1, 1, 1, 1)
+        brick.inputs["Mortar"].default_value = (0, 0, 0, 1)
+        for sock, val in (("Scale", 1.0), ("Mortar Size", 0.11),
+                          ("Mortar Smooth", 0.1), ("Bias", 0.0),
+                          ("Brick Width", 0.34), ("Row Height", 0.30)):
+            if sock in brick.inputs:
+                brick.inputs[sock].default_value = val
+        L.new(mapping.outputs["Vector"], brick.inputs["Vector"])
+        inv = nt.nodes.new("ShaderNodeMath")
+        inv.operation = "SUBTRACT"
+        inv.location = (-250, y)
+        inv.inputs[0].default_value = 1.0
+        L.new(brick.outputs["Fac"], inv.inputs[1])
+        return inv.outputs["Value"]
 
-    brick = nt.nodes.new("ShaderNodeTexBrick")
-    brick.location = (-480, 120)
-    brick.offset = 0.5
-    brick.offset_frequency = 2
-    brick.squash = 1.0
-    brick.inputs["Color1"].default_value = (1, 1, 1, 1)
-    brick.inputs["Color2"].default_value = (1, 1, 1, 1)
-    brick.inputs["Mortar"].default_value = (0, 0, 0, 1)
-    for sock, val in (("Scale", 1.0), ("Mortar Size", 0.10),
-                      ("Mortar Smooth", 0.15), ("Bias", 0.0),
-                      ("Brick Width", 0.42), ("Row Height", 0.50)):
-        if sock in brick.inputs:
-            brick.inputs[sock].default_value = val
-    L.new(mapping.outputs["Vector"], brick.inputs["Vector"])
+    mask_x = brick_mask(psep.outputs["Y"], psep.outputs["Z"], 220)
+    mask_y = brick_mask(psep.outputs["X"], psep.outputs["Z"], -60)
 
-    # mortar = 1, glass = 0  ->  invert to get the glass mask
-    invert = nt.nodes.new("ShaderNodeMath")
-    invert.operation = "SUBTRACT"
-    invert.location = (-240, 200)
-    invert.inputs[0].default_value = 1.0
-    L.new(brick.outputs["Fac"], invert.inputs[1])
+    abs_nx = nt.nodes.new("ShaderNodeMath")
+    abs_nx.operation = "ABSOLUTE"
+    abs_nx.location = (-660, -420)
+    L.new(nsep.outputs["X"], abs_nx.inputs[0])
+    abs_ny = nt.nodes.new("ShaderNodeMath")
+    abs_ny.operation = "ABSOLUTE"
+    abs_ny.location = (-660, -520)
+    L.new(nsep.outputs["Y"], abs_ny.inputs[0])
+    pick = nt.nodes.new("ShaderNodeMath")
+    pick.operation = "GREATER_THAN"
+    pick.location = (-470, -470)
+    L.new(abs_nx.outputs["Value"], pick.inputs[0])
+    L.new(abs_ny.outputs["Value"], pick.inputs[1])
 
-    # big clumps of unlit windows
+    windows = nt.nodes.new("ShaderNodeMixRGB")
+    windows.location = (0, 60)
+    windows.blend_type = "MIX"
+    L.new(pick.outputs["Value"], windows.inputs["Fac"])
+    L.new(mask_y.outputs["Value"], windows.inputs["Color1"])
+    L.new(mask_x.outputs["Value"], windows.inputs["Color2"])
+
+    # large clumps of unlit windows
     noise = nt.nodes.new("ShaderNodeTexNoise")
-    noise.location = (-480, -180)
-    noise.inputs["Scale"].default_value = 0.35
+    noise.location = (-470, -220)
+    noise.inputs["Scale"].default_value = 0.30
     if "Detail" in noise.inputs:
         noise.inputs["Detail"].default_value = 3.0
     L.new(geo.outputs["Position"], noise.inputs["Vector"])
-
     ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.location = (-240, -180)
-    ramp.color_ramp.elements[0].position = 0.47
-    ramp.color_ramp.elements[1].position = 0.60
+    ramp.location = (-250, -220)
+    ramp.color_ramp.elements[0].position = 0.44
+    ramp.color_ramp.elements[1].position = 0.58
     L.new(noise.outputs["Fac"], ramp.inputs["Fac"])
 
     mask = nt.nodes.new("ShaderNodeMath")
     mask.operation = "MULTIPLY"
-    mask.location = (0, 60)
-    L.new(invert.outputs["Value"], mask.inputs[0])
+    mask.location = (220, 60)
+    L.new(windows.outputs["Color"], mask.inputs[0])
     L.new(ramp.outputs["Color"], mask.inputs[1])
 
     strength = nt.nodes.new("ShaderNodeMath")
     strength.operation = "MULTIPLY"
-    strength.location = (180, 120)
+    strength.location = (400, 140)
     strength.inputs[1].default_value = window_strength
     L.new(mask.outputs["Value"], strength.inputs[0])
 
     # per-building window tint
     info = nt.nodes.new("ShaderNodeObjectInfo")
-    info.location = (-480, -420)
+    info.location = (-470, -620)
     tint = nt.nodes.new("ShaderNodeValToRGB")
-    tint.location = (-240, -420)
+    tint.location = (-250, -620)
     cr = tint.color_ramp
     cr.elements[0].position = 0.0
-    cr.elements[0].color = (0.09, 0.28, 0.55, 1)      # cold cyan
+    cr.elements[0].color = (0.10, 0.30, 0.60, 1)     # cold cyan
     cr.elements[1].position = 1.0
-    cr.elements[1].color = (0.60, 0.34, 0.11, 1)     # warm tungsten
+    cr.elements[1].color = (0.62, 0.36, 0.12, 1)     # warm tungsten
     e = cr.elements.new(0.6)
-    e.color = (0.50, 0.08, 0.30, 1)                  # magenta
+    e.color = (0.52, 0.09, 0.32, 1)                  # magenta
     L.new(info.outputs["Random"], tint.inputs["Fac"])
 
     em = nt.nodes.new("ShaderNodeEmission")
-    em.location = (400, 160)
+    em.location = (560, 180)
     L.new(tint.outputs["Color"], em.inputs["Color"])
     L.new(strength.outputs["Value"], em.inputs["Strength"])
 
     add = nt.nodes.new("ShaderNodeAddShader")
-    add.location = (700, 0)
+    add.location = (880, 0)
     L.new(bsdf.outputs["BSDF"], add.inputs[0])
     L.new(em.outputs["Emission"], add.inputs[1])
     L.new(add.outputs["Shader"], out.inputs["Surface"])
@@ -363,7 +401,7 @@ clear_scene()
 scene = bpy.context.scene
 
 BUILDING_MATS = [facade_material(f"Facade_{i}", window_strength=s)
-                 for i, s in enumerate((2.6, 4.0, 3.2))]
+                 for i, s in enumerate((4.5, 7.0, 5.5))]
 ROOF_MAT = pbr_mat("RoofDeck", (0.018, 0.019, 0.024), roughness=0.8, metallic=0.2)
 STRIP_MATS = [emission_mat(f"NeonStrip_{i}", c, strength=9.0)
               for i, c in enumerate(NEON)]
@@ -672,7 +710,7 @@ wout = WNT.nodes.new("ShaderNodeOutputWorld")
 wout.location = (400, 0)
 wbg = WNT.nodes.new("ShaderNodeBackground")
 wbg.location = (150, 160)
-wbg.inputs["Strength"].default_value = 0.9
+wbg.inputs["Strength"].default_value = 1.25
 
 # dusk gradient: deep indigo zenith, magenta/amber light-pollution haze on the
 # horizon so the skyline has something to sit against.
@@ -687,11 +725,11 @@ wcr = wramp.color_ramp
 wcr.elements[0].position = 0.30
 wcr.elements[0].color = (0.004, 0.005, 0.015, 1)
 wcr.elements[1].position = 0.62
-wcr.elements[1].color = (0.045, 0.030, 0.075, 1)
+wcr.elements[1].color = (0.055, 0.035, 0.090, 1)
 mid = wcr.elements.new(0.49)
-mid.color = (0.085, 0.035, 0.060, 1)       # warm light pollution at horizon
+mid.color = (0.11, 0.045, 0.085, 1)       # light pollution at horizon
 horizon = wcr.elements.new(0.455)
-horizon.color = (0.16, 0.06, 0.085, 1)
+horizon.color = (0.21, 0.075, 0.115, 1)
 WNT.links.new(wsep.outputs["Z"], wramp.inputs["Fac"])
 WNT.links.new(wramp.outputs["Color"], wbg.inputs["Color"])
 WNT.links.new(wbg.outputs["Background"], wout.inputs["Surface"])
@@ -752,13 +790,13 @@ def add_area(name, loc, color, energy, size, target=(0, 0, CAR_Z + 0.9)):
     return obj
 
 
-add_area("KeyMagenta", (5.5, -6.5, CAR_Z + 3.4), (1.0, 0.32, 0.70), 480, 4.0)
-add_area("RimCyan", (-6.5, 6.5, CAR_Z + 3.0), (0.20, 0.80, 1.0), 900, 3.5)
-add_area("FillViolet", (7.5, 7.0, CAR_Z + 2.0), (0.48, 0.24, 1.0), 260, 6.0)
-add_area("TopFill", (0.0, 0.0, CAR_Z + 7.0), (0.55, 0.72, 1.0), 320, 8.0,
+add_area("KeyMagenta", (5.5, -6.5, CAR_Z + 3.4), (1.0, 0.32, 0.70), 820, 4.0)
+add_area("RimCyan", (-6.5, 6.5, CAR_Z + 3.0), (0.20, 0.80, 1.0), 1500, 3.5)
+add_area("FillViolet", (7.5, 7.0, CAR_Z + 2.0), (0.48, 0.24, 1.0), 430, 6.0)
+add_area("TopFill", (0.0, 0.0, CAR_Z + 7.0), (0.55, 0.72, 1.0), 520, 8.0,
          target=(0, 0, CAR_Z))
 # tight kicker so the man's face/silhouette reads against the skyline
-add_area("FaceKicker", (2.6, -3.4, CAR_TOP + 1.4), (0.75, 0.90, 1.0), 90, 1.4,
+add_area("FaceKicker", (2.6, -3.4, CAR_TOP + 1.4), (0.75, 0.90, 1.0), 150, 1.4,
          target=(0.2, 0.0, CAR_TOP + 0.9))
 
 sun_data = bpy.data.lights.new("MoonSun", type="SUN")
@@ -808,9 +846,9 @@ def camera_pose(t):
     """Slow descending drone arc from a wide establishing view to a close
     three-quarter of the car + man."""
     e = smoothstep(t)
-    angle = math.radians(202.0 + (346.0 - 202.0) * e)
-    radius = 58.0 - 41.0 * e
-    height = CAR_Z + 27.0 - 22.6 * e
+    angle = math.radians(200.0 + (350.0 - 200.0) * e)
+    radius = 56.0 - 39.5 * e
+    height = CAR_Z + 21.0 - 17.6 * e
     angle += math.radians(1.4 * math.sin(t * math.pi * 2.1))
     height += 0.5 * math.sin(t * math.pi * 3.3)
     radius += 0.8 * math.sin(t * math.pi * 2.7)
@@ -819,10 +857,10 @@ def camera_pose(t):
     return loc, target
 
 
-PATH_KEYS = 26
+PATH_KEYS = 30
 for i in range(PATH_KEYS):
     t = i / (PATH_KEYS - 1)
-    frame = FRAME_START + round(t * (FRAME_END - FRAME_START))
+    frame = SHOT_START + round(t * (SHOT_END - SHOT_START))
     loc, target = camera_pose(t)
     cam_obj.location = loc
     cam_obj.rotation_euler = (target - loc).to_track_quat("-Z", "Y").to_euler()
@@ -837,8 +875,8 @@ scene.render.resolution_x = RES_X
 scene.render.resolution_y = RES_Y
 scene.render.resolution_percentage = ARGS.percent
 scene.render.fps = 24
-scene.frame_start = FRAME_START
-scene.frame_end = FRAME_END
+scene.frame_start = SHOT_START
+scene.frame_end = SHOT_END
 scene.render.image_settings.file_format = "PNG"
 scene.render.image_settings.color_mode = "RGB"
 scene.render.image_settings.color_depth = "8"
@@ -860,7 +898,7 @@ for look in ("AgX - Punchy", "AgX - Medium High Contrast"):
     except Exception:
         continue
 try:
-    scene.view_settings.exposure = 0.0
+    scene.view_settings.exposure = 0.45
 except Exception:
     pass
 
@@ -988,7 +1026,8 @@ scene.frame_set(FRAME_START)
 # ======================================================================
 objs = len(scene.objects)
 faces = sum(len(o.data.polygons) for o in scene.objects if o.type == "MESH")
-print(f"[scene] {objs} objects, {faces} faces, frames {FRAME_START}-{FRAME_END}, "
+print(f"[scene] {objs} objects, {faces} faces, shot {SHOT_START}-{SHOT_END}, "
+      f"rendering {FRAME_START}-{FRAME_END}, "
       f"{scene.render.resolution_x}x{scene.render.resolution_y}")
 print(f"[scene] engine: {scene.render.engine}, samples: {ARGS.samples}")
 
