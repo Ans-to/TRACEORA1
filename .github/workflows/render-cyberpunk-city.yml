@@ -320,8 +320,13 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
           count=$(ls frames/*.png 2>/dev/null | wc -l)
-          echo "shard produced $count images"; du -sh frames
-          [ "$count" -gt 0 ] || { echo "::error::shard $SHARD rendered nothing"; exit 1; }
+          echo "shard produced $count images"
+          if [ "$DO_RENDER" = "true" ] || [ "$VARIANTS" = "true" ]; then
+            du -sh frames
+            [ "$count" -gt 0 ] || { echo "::error::shard $SHARD rendered nothing"; exit 1; }
+          else
+            echo "build-only run: scene validated, nothing to render"
+          fi
 
       - name: Publish shard log on failure (shard 0)
         if: always() && matrix.shard == 0 && steps.render.outcome != 'success'
