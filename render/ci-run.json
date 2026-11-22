@@ -1,16 +1,16 @@
 {
-  "_note": "pipeline self-test",
-  "frames": "1-1",
-  "resolution": "960x540",
-  "samples": "8",
+  "_note": "Push-trigger config. render=false only validates the scene; set it to true (or use the Actions tab) to render the shot.",
+  "frames": "1-150",
+  "resolution": "1920x1080",
+  "samples": "20",
   "engine": "cycles",
-  "shards": "1",
+  "shards": "6",
   "percent": "100",
   "bloom": "0.5",
   "profile": "thin_hero",
-  "tag": "cyberpunk-city-smoke",
+  "tag": "cyberpunk-city",
   "upload_frames": "false",
-  "preview": "true",
+  "preview": "false",
   "variants": "false",
-  "render": "true"
+  "render": "false"
 }
