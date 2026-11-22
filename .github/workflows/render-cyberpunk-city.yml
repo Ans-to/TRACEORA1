@@ -1,0 +1,208 @@
+name: Render Neon Cyberpunk City (drone shot)
+
+# Renders render/neon_cyberpunk_city.py with Blender on a GitHub runner,
+# encodes an H.264 MP4, then publishes it as a public release asset so the
+# download link works without a GitHub login.
+#
+# Quick start: Actions -> "Render Neon Cyberpunk City (drone shot)" -> Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      frames:
+        description: "Frame range (e.g. 1-150); ~24 frames = 1 second"
+        default: "1-150"
+        required: true
+      resolution:
+        description: "Resolution WxH"
+        default: "1920x1080"
+        required: true
+      samples:
+        description: "Cycles samples (24-64 sane; higher = cleaner + slower)"
+        default: "32"
+        required: true
+      engine:
+        description: "Render engine: cycles (reliable headless) or eevee (needs software GL)"
+        type: choice
+        options: [cycles, eevee]
+        default: cycles
+      percent:
+        description: "Resolution percentage (100 = full)"
+        default: "100"
+      bloom:
+        description: "Post bloom strength 0-1 (0 disables)"
+        default: "0.5"
+      tag:
+        description: "Release tag to publish under (stable download URL)"
+        default: "cyberpunk-city"
+      upload_frames:
+        description: "Also upload the raw PNG frames (debugging, big)"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cyberpunk-render-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Blender render + encode
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------
+      # Toolchain
+      # ---------------------------------------------------------------
+      - name: Cache Blender
+        uses: actions/cache@v4
+        with:
+          path: ~/blender-bin
+          key: blender-linux-x64-4.5-v1
+
+      - name: Install Blender
+        run: |
+          set -euo pipefail
+          if [ -x "$HOME/blender-bin/blender" ]; then
+            echo "Using cached Blender: $("$HOME/blender-bin/blender" --version | head -1)"
+          else
+            BASE=https://download.blender.org/release
+            DIRS=$(curl -fsSL "$BASE/" | grep -oE 'Blender[45]\.[0-9]+/' | tr -d '/' | sort -uV)
+            echo "Available release branches:"; echo "$DIRS"
+            # prefer the 4.5 LTS line, otherwise the newest 4.x/5.x branch
+            DIR=$(echo "$DIRS" | grep -x 'Blender4\.5' || echo "$DIRS" | tail -1)
+            FILE=$(curl -fsSL "$BASE/$DIR/" \
+                   | grep -oE 'blender-[0-9]+\.[0-9]+\.[0-9]+-linux-x64\.tar\.xz' \
+                   | sort -uV | tail -1)
+            echo "Downloading $BASE/$DIR/$FILE"
+            curl -fL --retry 3 -o /tmp/blender.tar.xz "$BASE/$DIR/$FILE"
+            mkdir -p "$HOME/blender-bin"
+            tar -xJf /tmp/blender.tar.xz -C /tmp
+            mv /tmp/blender-*-linux-x64/* "$HOME/blender-bin/"
+            rm -f /tmp/blender.tar.xz
+            echo "Installed: $("$HOME/blender-bin/blender" --version | head -1)"
+          fi
+          echo "$HOME/blender-bin" >> "$GITHUB_PATH"
+
+      - name: Install software GL (EEVEE only)
+        if: inputs.engine == 'eevee'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1 libegl1 libglx-mesa0 \
+            libxi6 libxxf86vm1 libxrender1 libxfixes3 libsm6 libxkbcommon0
+
+      # ---------------------------------------------------------------
+      # Render
+      # ---------------------------------------------------------------
+      - name: Render frames
+        env:
+          ENGINE: ${{ inputs.engine }}
+          FRAMES: ${{ inputs.frames }}
+          RES: ${{ inputs.resolution }}
+          SAMPLES: ${{ inputs.samples }}
+          PERCENT: ${{ inputs.percent }}
+        run: |
+          set -euo pipefail
+          rm -rf frames && mkdir -p frames
+          args=(-b --factory-startup --python render/neon_cyberpunk_city.py --)
+          args+=(--render --engine "$ENGINE" --res "$RES" --samples "$SAMPLES")
+          args+=(--percent "$PERCENT" --frames "$FRAMES" --out frames)
+          if [ "$ENGINE" = "eevee" ]; then
+            export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+            xvfb-run -a -s "-screen 0 1920x1080x24" blender "${args[@]}" || {
+              echo "::warning title=EEVEE failed::Falling back to Cycles"
+              blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
+                --render --engine cycles --res "$RES" --samples "$SAMPLES" \
+                --percent "$PERCENT" --frames "$FRAMES" --out frames
+            }
+          else
+            blender "${args[@]}"
+          fi
+          echo "Rendered $(ls frames/*.png | wc -l) frames"
+          du -sh frames
+
+      # ---------------------------------------------------------------
+      # Encode
+      # ---------------------------------------------------------------
+      - name: Encode MP4 (bloom + grade)
+        env:
+          BLOOM: ${{ inputs.bloom }}
+          FRAMES: ${{ inputs.frames }}
+        run: |
+          set -euo pipefail
+          START="${FRAMES%-*}"
+          COUNT=$(ls frames/*.png | wc -l)
+          [ "$COUNT" -gt 0 ] || { echo "No frames rendered"; exit 1; }
+
+          grade="eq=contrast=1.06:saturation=1.14,vignette=angle=PI/4.5"
+          if awk "BEGIN{exit !($BLOOM > 0)}"; then
+            fc="[0:v]split=2[base][bl];[bl]gblur=sigma=22:steps=3,colorlevels=rimin=0.55:gimin=0.55:bimin=0.55[glow];[base][glow]blend=all_mode=screen:all_opacity=${BLOOM}[mix];[mix]${grade}[v]"
+          else
+            fc="[0:v]${grade}[v]"
+          fi
+          echo "filtergraph: $fc"
+
+          ffmpeg -hide_banner -y -framerate 24 -start_number "$START" \
+            -i frames/frame_%04d.png -filter_complex "$fc" -map "[v]" \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \
+            -movflags +faststart -g 48 \
+            neon-cyberpunk-city-drone.mp4
+
+          ffmpeg -hide_banner -y -ss 1.5 -i neon-cyberpunk-city-drone.mp4 \
+            -frames:v 1 -q:v 2 poster.jpg || true
+          ffprobe -hide_banner -v error -show_entries \
+            format=duration,size:stream=width,height,nb_frames \
+            -of default=noprint_wrappers=1 neon-cyberpunk-city-drone.mp4
+
+      # ---------------------------------------------------------------
+      # Publish
+      # ---------------------------------------------------------------
+      - name: Upload MP4 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-cyberpunk-city-mp4
+          path: |
+            neon-cyberpunk-city-drone.mp4
+            poster.jpg
+          retention-days: 30
+
+      - name: Upload debug stills
+        if: inputs.upload_frames == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-cyberpunk-city-frames
+          path: frames/*.png
+          retention-days: 7
+
+      - name: Publish release asset (public download link)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TITLE="Neon Cyberpunk City — drone render"
+          NOTES="Procedural Blender scene: car on a rooftop, man on the car, drone flyby through a neon skyline. Rendered in GitHub Actions (frames ${{ inputs.frames }} @ ${{ inputs.resolution }}, ${{ inputs.engine }}, ${{ inputs.samples }} samples)."
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES"
+          gh release upload "$TAG" neon-cyberpunk-city-drone.mp4 --clobber
+          gh release upload "$TAG" poster.jpg --clobber || true
+
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/neon-cyberpunk-city-drone.mp4"
+          {
+            echo "## Neon Cyberpunk City — render finished"
+            echo ""
+            echo "**Download (MP4, direct, no login):** $URL"
+            echo ""
+            echo "| frame range | resolution | engine | samples |"
+            echo "|---|---|---|---|"
+            echo "| ${{ inputs.frames }} | ${{ inputs.resolution }} | ${{ inputs.engine }} | ${{ inputs.samples }} |"
+            echo ""
+            echo "Artifact: \`neon-cyberpunk-city-mp4\` on this run."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "DOWNLOAD_URL=$URL" >> "$GITHUB_ENV"
