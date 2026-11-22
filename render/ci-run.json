@@ -1,7 +1,7 @@
 {
   "frames": "150-150",
-  "resolution": "1280x720",
-  "samples": "16",
+  "resolution": "960x540",
+  "samples": "12",
   "engine": "cycles",
   "shards": "1",
   "percent": "100",

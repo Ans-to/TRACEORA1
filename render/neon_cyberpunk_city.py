@@ -543,16 +543,17 @@ def build_rooftop():
              (dx * 5.6, 1.4, ROOF_Z + 0.04), mat=floor_mat)
 
     # rooftop machinery
-    ac_mat = pbr_mat("ACMat", (0.04, 0.042, 0.05), roughness=0.55, metallic=0.5)
+    ac_mat = pbr_mat("ACMat", (0.016, 0.017, 0.021), roughness=0.72,
+                     metallic=0.15)
     for i, (px, py, dims) in enumerate(((5.1, -4.9, (2.6, 1.9, 1.15)),
                                         (-5.0, 5.2, (2.0, 2.9, 0.95)),
                                         (5.3, 5.1, (2.2, 2.2, 1.35)))):
         body = cube(f"AC_{i}", dims, (px, py, ROOF_Z + dims[2] / 2), mat=ac_mat)
         apply_scale(body)
         add_bevel(body, 0.05, 2)
-        cube(f"ACVent_{i}", (dims[0] * 0.72, dims[1] * 0.72, 0.05),
+        cube(f"ACVent_{i}", (dims[0] * 0.40, dims[1] * 0.40, 0.04),
              (px, py, ROOF_Z + dims[2] + 0.02),
-             mat=emission_mat(f"ACGlow_{i}", (0.10, 0.75, 1.0), 1.2))
+             mat=emission_mat(f"ACGlow_{i}", (0.10, 0.70, 1.0), 0.9))
 
     # stair / access hut in the back-left corner with a lit door frame
     hut = cube("Hut", (3.4, 2.8, 2.5), (-5.4, -4.9, ROOF_Z + 1.25),
@@ -565,8 +566,8 @@ def build_rooftop():
 
     # mast with a red beacon
     mast_mat = pbr_mat("Mast", (0.05, 0.05, 0.06), roughness=0.4, metallic=0.8)
-    cylinder("Mast", 0.16, 7.5, (6.6, -6.2, ROOF_Z + 3.75), mat=mast_mat, verts=10)
-    sphere("MastBeacon", 0.26, (6.6, -6.2, ROOF_Z + 7.6),
+    cylinder("Mast", 0.16, 7.5, (6.7, 6.4, ROOF_Z + 3.75), mat=mast_mat, verts=10)
+    sphere("MastBeacon", 0.26, (6.7, 6.4, ROOF_Z + 7.6),
            mat=emission_mat("Beacon", (1.0, 0.12, 0.16), 9.0))
 
     # TRACEORA neon sign on the front parapet
@@ -574,7 +575,7 @@ def build_rooftop():
                             hero=True)
     frame_mat = pbr_mat("SignFrame", (0.02, 0.02, 0.025), roughness=0.5,
                         metallic=0.7)
-    bpy.ops.object.text_add(location=(0, -8.28, ROOF_Z + 0.55))
+    bpy.ops.object.text_add(location=(-8.42, 0, ROOF_Z + 0.55))
     txt = bpy.context.object
     txt.name = "SignText"
     txt.data.body = "TRACEORA"
@@ -582,14 +583,14 @@ def build_rooftop():
     txt.data.align_y = "CENTER"
     txt.data.size = 1.9
     txt.data.extrude = 0.09
-    txt.rotation_euler = (math.radians(90), 0, 0)
+    txt.rotation_euler = (math.radians(90), 0, math.radians(90))
     txt.data.materials.append(sign_mat)
     activate(txt)
     bpy.ops.object.convert(target="MESH")
 
-    cube("SignBack", (12.6, 0.30, 2.7), (0, -8.55, ROOF_Z + 1.75), mat=frame_mat)
-    for i, sx in enumerate((-1, 1)):
-        cube(f"SignPost_{i}", (0.22, 0.22, 2.6), (sx * 5.4, -8.5, ROOF_Z + 1.3),
+    cube("SignBack", (0.30, 12.6, 2.7), (-8.62, 0, ROOF_Z + 1.75), mat=frame_mat)
+    for i, sy in enumerate((-1, 1)):
+        cube(f"SignPost_{i}", (0.22, 0.22, 2.6), (-8.55, sy * 5.4, ROOF_Z + 1.3),
              mat=frame_mat)
 
 
@@ -669,10 +670,10 @@ def build_seated_man(base_z):
                      metallic=0.2)
     pants = pbr_mat("ManPants", (0.035, 0.038, 0.048), roughness=0.7,
                     metallic=0.05)
-    skin = pbr_mat("ManSkin", (0.40, 0.26, 0.20), roughness=0.5, metallic=0.0)
+    skin = pbr_mat("ManSkin", (0.26, 0.16, 0.12), roughness=0.45, metallic=0.0)
     hair = pbr_mat("ManHair", (0.015, 0.014, 0.016), roughness=0.75,
                    metallic=0.1)
-    trim = emission_mat("ManTrim", (1.0, 0.08, 0.5), strength=10.0, hero=True)
+    trim = emission_mat("ManTrim", (1.0, 0.08, 0.5), strength=4.5, hero=True)
     boot = pbr_mat("ManBoot", (0.012, 0.012, 0.015), roughness=0.4,
                    metallic=0.3)
 
@@ -683,7 +684,7 @@ def build_seated_man(base_z):
                       rot=(0, math.radians(9), 0), mat=jacket))
     parts.append(cube("Zip", (0.03, 0.05, 0.56), (0.27, 0.0, base_z + 0.52),
                       rot=(0, math.radians(9), 0), mat=trim))
-    parts.append(cube("Collar", (0.30, 0.40, 0.09), (0.14, 0.0, base_z + 0.84),
+    parts.append(cube("Collar", (0.24, 0.34, 0.06), (0.13, 0.0, base_z + 0.85),
                       mat=trim))
     parts.append(cylinder("Neck", 0.075, 0.13, (0.13, 0.0, base_z + 0.92),
                           mat=skin, verts=12))
@@ -813,7 +814,7 @@ add_area("FillViolet", (7.5, 7.0, CAR_Z + 2.0), (0.48, 0.24, 1.0), 430, 6.0)
 add_area("TopFill", (0.0, 0.0, CAR_Z + 7.0), (0.55, 0.72, 1.0), 520, 8.0,
          target=(0, 0, CAR_Z))
 # tight kicker so the man's face/silhouette reads against the skyline
-add_area("FaceKicker", (2.6, -3.4, CAR_TOP + 1.4), (0.75, 0.90, 1.0), 150, 1.4,
+add_area("FaceKicker", (2.6, -3.4, CAR_TOP + 1.4), (0.85, 0.80, 0.95), 55, 1.6,
          target=(0.2, 0.0, CAR_TOP + 0.9))
 
 sun_data = bpy.data.lights.new("MoonSun", type="SUN")
