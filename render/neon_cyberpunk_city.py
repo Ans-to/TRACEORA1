@@ -916,6 +916,21 @@ print(f"[scene] {objs} objects, {tris} faces, frames {FRAME_START}-{FRAME_END}, 
       f"{scene.render.resolution_x}x{scene.render.resolution_y}")
 print(f"[scene] engine: {scene.render.engine}, samples: {ARGS.samples}")
 
+def image_stats(path):
+    """Cheap sanity metrics so CI can prove a frame is not black/blown out."""
+    try:
+        import numpy as np
+        img = bpy.data.images.load(path, check_existing=False)
+        px = np.array(img.pixels[:], dtype="float32").reshape(-1, img.channels)
+        rgb = px[:, :3]
+        bpy.data.images.remove(img)
+        hi = float((rgb.max(axis=1) > 0.6).mean() * 100.0)
+        return (f"mean={rgb.mean():.4f} p50={np.percentile(rgb, 50):.3f} "
+                f"p99={np.percentile(rgb, 99):.3f} bright={hi:.2f}%")
+    except Exception as exc:  # pragma: no cover
+        return f"stats unavailable ({exc})"
+
+
 if ARGS.render:
     out_dir = os.path.abspath(ARGS.out)
     os.makedirs(out_dir, exist_ok=True)
@@ -924,13 +939,15 @@ if ARGS.render:
     for i, frame in enumerate(range(FRAME_START, FRAME_END + 1), start=1):
         t0 = time.time()
         scene.frame_set(frame)
-        scene.render.filepath = os.path.join(out_dir, f"frame_{frame:04d}.png")
+        path = os.path.join(out_dir, f"frame_{frame:04d}.png")
+        scene.render.filepath = path
         bpy.ops.render.render(write_still=True)
         done = time.time() - t_start
         eta = (done / i) * (total - i)
         print(f"[render] frame {frame} ({i}/{total}) "
               f"{time.time() - t0:.1f}s  elapsed {done / 60:.1f}m  "
               f"eta {eta / 60:.1f}m", flush=True)
+        print(f"[stats] frame {frame} {image_stats(path)}", flush=True)
     print(f"[render] done in {(time.time() - t_start) / 60:.2f} min -> {out_dir}")
 else:
     print("[scene] build only (pass --render to render frames)")

@@ -49,6 +49,11 @@ on:
         type: choice
         options: ["true", "false"]
         default: "true"
+      preview:
+        description: "Commit small preview stills to render/preview/ for review"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
   push:
     branches: [main, "arena/**"]
     paths:
@@ -89,6 +94,7 @@ jobs:
           IN_TAG: ${{ inputs.tag }}
           IN_UPLOAD: ${{ inputs.upload_frames }}
           IN_RENDER: ${{ inputs.render }}
+          IN_PREVIEW: ${{ inputs.preview }}
         run: |
           set -euo pipefail
           cfg=render/ci-run.json
@@ -111,6 +117,7 @@ jobs:
           tag="$(pick tag          "$IN_TAG"     'cyberpunk-city')"
           upload="$(pick upload_frames "$IN_UPLOAD"  'false')"
           do_render="$(pick render   "$IN_RENDER"  'true')"
+          preview="$(pick preview  "$IN_PREVIEW" 'false')"
 
           case "$res" in
             1080p) res=1920x1080 ;;
@@ -134,8 +141,9 @@ jobs:
             echo "tag=$tag"
             echo "upload_frames=$upload"
             echo "render=$do_render"
+            echo "preview=$preview"
           } >> "$GITHUB_OUTPUT"
-          echo "frames=$frames res=$res samples=$samples engine=$engine bloom=$bloom render=$do_render tag=$tag"
+          echo "frames=$frames res=$res samples=$samples engine=$engine bloom=$bloom render=$do_render preview=$preview tag=$tag"
 
       # ---------------------------------------------------------------
       # Toolchain
@@ -169,6 +177,17 @@ jobs:
           fi
           echo "$HOME/blender-bin" >> "$GITHUB_PATH"
 
+      - name: Install ffmpeg
+        run: |
+          set -euo pipefail
+          if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
+            echo "ffmpeg already present: $(ffmpeg -version | head -1)"
+          else
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+            ffmpeg -version | head -1
+          fi
+
       - name: Install software GL (EEVEE only)
         if: steps.params.outputs.engine == 'eevee'
         run: |
@@ -200,16 +219,21 @@ jobs:
             export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
             xvfb-run -a -s "-screen 0 1920x1080x24" \
               blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
-              "${extra[@]}" "${common[@]}" || {
+              "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log || {
                 echo "::warning title=EEVEE failed::Falling back to Cycles"
                 blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
                   --render --engine cycles --res "$RES" --samples "$SAMPLES" \
-                  --percent "$PERCENT" --frames "$FRAMES" --out frames
+                  --percent "$PERCENT" --frames "$FRAMES" --out frames 2>&1 | tee blender.log
               }
           else
             blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
-              "${extra[@]}" "${common[@]}"
+              "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log
           fi
+
+          # surface scene stats + per-frame timings as readable annotations
+          grep -E '^\[(scene|render|stats)\]' blender.log | tail -40 | \
+            while IFS= read -r line; do echo "::notice::$line"; done || true
+          grep -E '^\[(scene|stats|render)\]' blender.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
           if [ "$DO_RENDER" = "true" ]; then
             count=$(ls frames/*.png 2>/dev/null | wc -l)
@@ -263,12 +287,39 @@ jobs:
           retention-days: 30
 
       - name: Upload debug stills
-        if: steps.params.outputs.upload_frames == 'true'
+        if: always() && steps.params.outputs.upload_frames == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: neon-cyberpunk-city-frames
           path: frames/*.png
           retention-days: 7
+
+      # Small JPEG stills committed back to the branch purely so reviewers
+      # (and the agent that drives this workflow) can eyeball the render
+      # without downloading large artifacts.
+      - name: Publish preview stills
+        if: always() && steps.params.outputs.preview == 'true'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(frames/*.png)
+          if [ ${#files[@]} -eq 0 ]; then echo "no frames to preview"; exit 0; fi
+          mkdir -p render/preview
+          pick=("${files[0]}")
+          if [ ${#files[@]} -gt 1 ]; then pick+=("${files[${#files[@]}/2]}"); fi
+          if [ ${#files[@]} -gt 2 ]; then pick+=("${files[${#files[@]}-1]}"); fi
+          for f in "${pick[@]}"; do
+            base=$(basename "$f" .png)
+            ffmpeg -hide_banner -loglevel error -y -i "$f" -vf "scale=900:-1" \
+              -q:v 4 "render/preview/${base}.jpg"
+          done
+          ls -la render/preview
+          git config user.name "render-bot"
+          git config user.email "render-bot@users.noreply.github.com"
+          git add render/preview
+          git commit -m "ci: preview stills from run ${GITHUB_RUN_NUMBER} [skip ci]" || exit 0
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "::warning::could not push preview stills"
 
       - name: Publish release asset (public download link)
         if: steps.params.outputs.render == 'true'
