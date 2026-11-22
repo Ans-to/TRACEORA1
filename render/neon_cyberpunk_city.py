@@ -295,12 +295,28 @@ def facade_material(name, window_strength=4.5):
     L.new(abs_nx.outputs["Value"], pick.inputs[0])
     L.new(abs_ny.outputs["Value"], pick.inputs[1])
 
-    windows = nt.nodes.new("ShaderNodeMixRGB")
-    windows.location = (0, 60)
-    windows.blend_type = "MIX"
-    L.new(pick.outputs["Value"], windows.inputs["Fac"])
-    L.new(mask_y.outputs["Value"], windows.inputs["Color1"])
-    L.new(mask_x.outputs["Value"], windows.inputs["Color2"])
+    # windows = mask_x*pick + mask_y*(1-pick)  (pure math, no Mix node so it
+    # works identically on 4.2 LTS and 5.x where legacy MixRGB is gone)
+    inv_pick = nt.nodes.new("ShaderNodeMath")
+    inv_pick.operation = "SUBTRACT"
+    inv_pick.location = (-250, -520)
+    inv_pick.inputs[0].default_value = 1.0
+    L.new(pick.outputs["Value"], inv_pick.inputs[1])
+    wx = nt.nodes.new("ShaderNodeMath")
+    wx.operation = "MULTIPLY"
+    wx.location = (-60, 220)
+    L.new(mask_x.outputs["Value"], wx.inputs[0])
+    L.new(pick.outputs["Value"], wx.inputs[1])
+    wy = nt.nodes.new("ShaderNodeMath")
+    wy.operation = "MULTIPLY"
+    wy.location = (-60, 20)
+    L.new(mask_y.outputs["Value"], wy.inputs[0])
+    L.new(inv_pick.outputs["Value"], wy.inputs[1])
+    windows = nt.nodes.new("ShaderNodeMath")
+    windows.operation = "ADD"
+    windows.location = (120, 120)
+    L.new(wx.outputs["Value"], windows.inputs[0])
+    L.new(wy.outputs["Value"], windows.inputs[1])
 
     # large clumps of unlit windows
     noise = nt.nodes.new("ShaderNodeTexNoise")
@@ -318,7 +334,7 @@ def facade_material(name, window_strength=4.5):
     mask = nt.nodes.new("ShaderNodeMath")
     mask.operation = "MULTIPLY"
     mask.location = (220, 60)
-    L.new(windows.outputs["Color"], mask.inputs[0])
+    L.new(windows.outputs["Value"], mask.inputs[0])
     L.new(ramp.outputs["Color"], mask.inputs[1])
 
     strength = nt.nodes.new("ShaderNodeMath")

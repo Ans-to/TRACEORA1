@@ -279,20 +279,37 @@ jobs:
                   --out frames --profile "$PROFILE")
 
           echo "== Blender =="; blender --version | head -2
-          if [ "$ENGINE" = "eevee" ]; then
-            export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
-            xvfb-run -a -s "-screen 0 1920x1080x24" \
-              blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
-              "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log || {
-                echo "::warning title=EEVEE failed::Falling back to Cycles"
+          run_blender() {   # $1 = "eevee" to go through xvfb
+            if [ "${1:-}" = "eevee" ]; then
+              export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+              xvfb-run -a -s "-screen 0 1920x1080x24" \
                 blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
-                  --render --engine cycles --res "$RES" --samples "$SAMPLES" \
-                  --percent "$PERCENT" --frames "$S-$E" --shot "$START-$END" \
-                  --out frames --profile "$PROFILE" 2>&1 | tee blender.log
-              }
+                "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log
+            else
+              blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
+                "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log
+            fi
+            return "${PIPESTATUS[0]}"
+          }
+          set +e
+          if [ "$ENGINE" = "eevee" ]; then
+            run_blender eevee; rc=$?
+            if [ "$rc" -ne 0 ]; then
+              echo "::warning title=EEVEE failed::Falling back to Cycles"
+              extra+=(--render); common=(--engine cycles --res "$RES" --samples "$SAMPLES" \
+                --percent "$PERCENT" --frames "$S-$E" --shot "$START-$END" --out frames \
+                --profile "$PROFILE")
+              run_blender; rc=$?
+            fi
           else
-            blender -b --factory-startup --python render/neon_cyberpunk_city.py -- \
-              "${extra[@]}" "${common[@]}" 2>&1 | tee blender.log
+            run_blender; rc=$?
+          fi
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::error title=Blender exit $rc::$(grep -iE 'error|traceback|exception|line [0-9]+' blender.log | tail -6 | tr '\n' ' | ')"
+            grep -iE 'error|traceback|exception|file \"' blender.log | tail -12 | \
+              while IFS= read -r l; do echo "::error::$l"; done || true
+            exit "$rc"
           fi
 
           grep -E '^\[(scene|render|stats|variant)\]' blender.log | tail -40 | \
