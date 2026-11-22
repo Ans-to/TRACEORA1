@@ -305,12 +305,12 @@ def facade_material(name, window_strength=4.5):
     wx = nt.nodes.new("ShaderNodeMath")
     wx.operation = "MULTIPLY"
     wx.location = (-60, 220)
-    L.new(mask_x.outputs["Value"], wx.inputs[0])
+    L.new(mask_x, wx.inputs[0])
     L.new(pick.outputs["Value"], wx.inputs[1])
     wy = nt.nodes.new("ShaderNodeMath")
     wy.operation = "MULTIPLY"
     wy.location = (-60, 20)
-    L.new(mask_y.outputs["Value"], wy.inputs[0])
+    L.new(mask_y, wy.inputs[0])
     L.new(inv_pick.outputs["Value"], wy.inputs[1])
     windows = nt.nodes.new("ShaderNodeMath")
     windows.operation = "ADD"
