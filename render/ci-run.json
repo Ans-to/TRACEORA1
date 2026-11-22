@@ -1,5 +1,5 @@
 {
-  "_note": "Set render to true (or use the Actions tab) to render; pushing this file is the agent/CI trigger.",
+  "_note": "Push-trigger config. render=false only validates the scene; set it to true (or use the Actions tab) to render.",
   "frames": "1-150",
   "resolution": "1920x1080",
   "samples": "20",
