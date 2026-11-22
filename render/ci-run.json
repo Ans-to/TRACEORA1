@@ -1,9 +1,9 @@
 {
-  "frames": "146-150",
+  "frames": "150-150",
   "resolution": "1280x720",
   "samples": "16",
   "engine": "cycles",
-  "shards": "2",
+  "shards": "1",
   "percent": "100",
   "bloom": "0.5",
   "profile": "thin_hero",

@@ -504,6 +504,7 @@ build_billboards()
 ROOF_H = 40.0
 SLAB = 0.35
 ROOF_Z = ROOF_H + SLAB
+HERO_FACADE = facade_material("FacadeHero", window_strength=2.0)
 ROOF_HALF = 8.0          # hero tower footprint is 16 x 16 m
 PARAPET_H = 0.95
 
@@ -512,7 +513,7 @@ def build_rooftop():
     """16x16 roof box: parapet with neon cap, AC units, access hut, mast and
     the TRACEORA sign standing on the front edge."""
     tower = cube("HeroTower", (16, 16, ROOF_H), (0, 0, ROOF_H / 2))
-    two_tone_facade(tower, BUILDING_MATS[1], ROOF_MAT)
+    two_tone_facade(tower, HERO_FACADE, ROOF_MAT)
 
     cube("RoofSlab", (16.7, 16.7, SLAB), (0, 0, ROOF_H + SLAB / 2),
          mat=pbr_mat("RoofSlabMat", (0.020, 0.021, 0.028), roughness=0.35,
@@ -863,13 +864,13 @@ def camera_pose(t):
     three-quarter of the car + man."""
     e = smoothstep(t)
     angle = math.radians(198.0 + (352.0 - 198.0) * e)
-    radius = 54.0 - 38.0 * e
-    height = CAR_Z + 18.0 - 14.8 * e
+    radius = 54.0 - 42.5 * e
+    height = CAR_Z + 18.0 - 14.4 * e
     angle += math.radians(1.4 * math.sin(t * math.pi * 2.1))
     height += 0.5 * math.sin(t * math.pi * 3.3)
     radius += 0.8 * math.sin(t * math.pi * 2.7)
     loc = Vector((radius * math.cos(angle), radius * math.sin(angle), height))
-    target = Vector((0.0, 0.0, CAR_Z + 1.0 + 1.1 * (1.0 - e)))
+    target = Vector((0.0, 0.0, CAR_Z + 1.0 + 1.3 * (1.0 - e)))
     return loc, target
 
 
