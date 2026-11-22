@@ -66,12 +66,13 @@ on:
         type: choice
         options: ["true", "false"]
         default: "true"
+  # The agent loop drives renders by editing render/ci-run.json and pushing.
+  # Nothing else auto-triggers, so tweaking the scene never burns a 1h render
+  # by accident. Use the Actions tab for real renders.
   push:
-    branches: [main, "arena/**"]
+    branches: ["arena/**"]
     paths:
       - "render/ci-run.json"
-      - ".github/workflows/render-cyberpunk-city.yml"
-      - "render/neon_cyberpunk_city.py"
 
 permissions:
   contents: write
@@ -239,6 +240,7 @@ jobs:
             libxi6 libxxf86vm1 libxrender1 libxfixes3 libsm6 libxkbcommon0
 
       - name: Render shard ${{ matrix.shard }}
+        id: render
         env:
           ENGINE: ${{ needs.plan.outputs.engine }}
           FRAMES: ${{ needs.plan.outputs.frames }}
@@ -321,8 +323,8 @@ jobs:
           echo "shard produced $count images"; du -sh frames
           [ "$count" -gt 0 ] || { echo "::error::shard $SHARD rendered nothing"; exit 1; }
 
-      - name: Publish shard log (shard 0)
-        if: always() && matrix.shard == 0
+      - name: Publish shard log on failure (shard 0)
+        if: always() && matrix.shard == 0 && steps.render.outcome != 'success'
         run: |
           set -uo pipefail
           [ -f blender.log ] || { echo "no blender.log"; exit 0; }

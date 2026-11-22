@@ -1,4 +1,5 @@
 {
+  "_note": "Set render to true (or use the Actions tab) to render; pushing this file is the agent/CI trigger.",
   "frames": "1-150",
   "resolution": "1920x1080",
   "samples": "20",
@@ -9,7 +10,7 @@
   "profile": "thin_hero",
   "tag": "cyberpunk-city",
   "upload_frames": "false",
-  "preview": "true",
+  "preview": "false",
   "variants": "false",
-  "render": "true"
+  "render": "false"
 }
