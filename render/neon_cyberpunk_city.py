@@ -327,8 +327,8 @@ def facade_material(name, window_strength=4.5):
     L.new(geo.outputs["Position"], noise.inputs["Vector"])
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     ramp.location = (-250, -220)
-    ramp.color_ramp.elements[0].position = 0.44
-    ramp.color_ramp.elements[1].position = 0.58
+    ramp.color_ramp.elements[0].position = 0.46
+    ramp.color_ramp.elements[1].position = 0.62
     L.new(noise.outputs["Fac"], ramp.inputs["Fac"])
 
     mask = nt.nodes.new("ShaderNodeMath")
@@ -384,7 +384,7 @@ def screen_material(name, color_a, color_b, strength=5.0):
     wave.location = (-380, 0)
     wave.wave_type = "BANDS"
     wave.bands_direction = "Y"
-    wave.inputs["Scale"].default_value = 2.0
+    wave.inputs["Scale"].default_value = 6.0
     if "Distortion" in wave.inputs:
         wave.inputs["Distortion"].default_value = 3.0
     L.new(geo.outputs["Position"], wave.inputs["Vector"])
@@ -481,12 +481,12 @@ def build_city(cells=6, cell=19.0, hero_clear=27.0, corridor=68.0):
 
 def build_billboards():
     specs = [
-        (-62, -56, math.radians(38), 26, 15, (0.02, 0.7, 1.0), (0.45, 0.02, 1.0)),
-        (72, -34, math.radians(-120), 22, 13, (1.0, 0.05, 0.45), (1.0, 0.45, 0.05)),
-        (-22, 88, math.radians(200), 30, 17, (0.35, 0.02, 1.0), (0.05, 0.8, 0.6)),
+        (-64, -58, math.radians(38), 20, 11, (0.01, 0.30, 0.55), (0.12, 0.01, 0.30)),
+        (74, -36, math.radians(-120), 17, 10, (0.55, 0.02, 0.22), (0.30, 0.12, 0.01)),
+        (-24, 88, math.radians(200), 24, 13, (0.16, 0.01, 0.45), (0.01, 0.35, 0.28)),
     ]
     for i, (x, y, rot, w, h, ca, cb) in enumerate(specs):
-        mat = screen_material(f"Billboard_{i}", ca, cb, strength=4.0)
+        mat = screen_material(f"Billboard_{i}", ca, cb, strength=1.5)
         bpy.ops.mesh.primitive_plane_add(size=1, location=(x, y, 46 + i * 6))
         obj = bpy.context.object
         obj.name = f"Billboard_{i}"
@@ -528,14 +528,14 @@ def build_rooftop():
              (dx * 8.05, dy * 8.05, ROOF_Z + PARAPET_H / 2), mat=wall_mat)
 
     # neon cap running along the top of the parapet
-    rim_mat = emission_mat("RimCyan", (0.05, 0.80, 1.0), strength=12.0, hero=True)
+    rim_mat = emission_mat("RimCyan", (0.05, 0.80, 1.0), strength=18.0, hero=True)
     for i, (dx, dy, sx, sy) in enumerate(((0, 1, 1, 0), (0, -1, 1, 0),
                                           (1, 0, 0, 1), (-1, 0, 0, 1))):
         cube(f"Rim_{i}", (16.3 if sx else 0.14, 16.3 if sy else 0.14, 0.09),
              (dx * 8.05, dy * 8.05, ROOF_Z + PARAPET_H + 0.02), mat=rim_mat)
 
     # magenta floor strips washing the deck
-    floor_mat = emission_mat("RimMagenta", (1.0, 0.06, 0.5), strength=10.0,
+    floor_mat = emission_mat("RimMagenta", (1.0, 0.06, 0.5), strength=17.0,
                              hero=True)
     for i, dx in enumerate((-1, 1)):
         cube(f"FloorStrip_{i}", (0.14, 12.0, 0.06),
@@ -551,7 +551,7 @@ def build_rooftop():
         add_bevel(body, 0.05, 2)
         cube(f"ACVent_{i}", (dims[0] * 0.72, dims[1] * 0.72, 0.05),
              (px, py, ROOF_Z + dims[2] + 0.02),
-             mat=emission_mat(f"ACGlow_{i}", (0.10, 0.80, 1.0), 2.6))
+             mat=emission_mat(f"ACGlow_{i}", (0.10, 0.75, 1.0), 1.2))
 
     # stair / access hut in the back-left corner with a lit door frame
     hut = cube("Hut", (3.4, 2.8, 2.5), (-5.4, -4.9, ROOF_Z + 1.25),
@@ -566,10 +566,10 @@ def build_rooftop():
     mast_mat = pbr_mat("Mast", (0.05, 0.05, 0.06), roughness=0.4, metallic=0.8)
     cylinder("Mast", 0.16, 7.5, (6.6, -6.2, ROOF_Z + 3.75), mat=mast_mat, verts=10)
     sphere("MastBeacon", 0.26, (6.6, -6.2, ROOF_Z + 7.6),
-           mat=emission_mat("Beacon", (1.0, 0.12, 0.16), 12.0))
+           mat=emission_mat("Beacon", (1.0, 0.12, 0.16), 9.0))
 
     # TRACEORA neon sign on the front parapet
-    sign_mat = emission_mat("SignMagenta", (1.0, 0.10, 0.55), strength=7.0,
+    sign_mat = emission_mat("SignMagenta", (1.0, 0.10, 0.55), strength=9.0,
                             hero=True)
     frame_mat = pbr_mat("SignFrame", (0.02, 0.02, 0.025), roughness=0.5,
                         metallic=0.7)
@@ -726,7 +726,7 @@ wout = WNT.nodes.new("ShaderNodeOutputWorld")
 wout.location = (400, 0)
 wbg = WNT.nodes.new("ShaderNodeBackground")
 wbg.location = (150, 160)
-wbg.inputs["Strength"].default_value = 1.25
+wbg.inputs["Strength"].default_value = 1.5
 
 # dusk gradient: deep indigo zenith, magenta/amber light-pollution haze on the
 # horizon so the skyline has something to sit against.
@@ -739,7 +739,7 @@ wramp = WNT.nodes.new("ShaderNodeValToRGB")
 wramp.location = (-320, 300)
 wcr = wramp.color_ramp
 wcr.elements[0].position = 0.30
-wcr.elements[0].color = (0.004, 0.005, 0.015, 1)
+wcr.elements[0].color = (0.008, 0.012, 0.035, 1)
 wcr.elements[1].position = 0.62
 wcr.elements[1].color = (0.055, 0.035, 0.090, 1)
 mid = wcr.elements.new(0.49)
@@ -862,9 +862,9 @@ def camera_pose(t):
     """Slow descending drone arc from a wide establishing view to a close
     three-quarter of the car + man."""
     e = smoothstep(t)
-    angle = math.radians(200.0 + (350.0 - 200.0) * e)
-    radius = 56.0 - 39.5 * e
-    height = CAR_Z + 21.0 - 17.6 * e
+    angle = math.radians(198.0 + (352.0 - 198.0) * e)
+    radius = 54.0 - 38.0 * e
+    height = CAR_Z + 18.0 - 14.8 * e
     angle += math.radians(1.4 * math.sin(t * math.pi * 2.1))
     height += 0.5 * math.sin(t * math.pi * 3.3)
     radius += 0.8 * math.sin(t * math.pi * 2.7)
