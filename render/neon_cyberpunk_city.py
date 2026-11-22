@@ -543,11 +543,11 @@ def build_rooftop():
              (dx * 5.6, 1.4, ROOF_Z + 0.04), mat=floor_mat)
 
     # rooftop machinery
-    ac_mat = pbr_mat("ACMat", (0.016, 0.017, 0.021), roughness=0.72,
-                     metallic=0.15)
-    for i, (px, py, dims) in enumerate(((5.1, -4.9, (2.6, 1.9, 1.15)),
-                                        (-5.0, 5.2, (2.0, 2.9, 0.95)),
-                                        (5.3, 5.1, (2.2, 2.2, 1.35)))):
+    ac_mat = pbr_mat("ACMat", (0.008, 0.009, 0.012), roughness=0.65,
+                     metallic=0.25)
+    for i, (px, py, dims) in enumerate(((-5.6, -5.2, (2.1, 1.6, 1.0)),
+                                        (5.6, -5.4, (1.7, 2.2, 0.9)),
+                                        (-5.4, 5.4, (1.9, 1.9, 1.15)))):
         body = cube(f"AC_{i}", dims, (px, py, ROOF_Z + dims[2] / 2), mat=ac_mat)
         apply_scale(body)
         add_bevel(body, 0.05, 2)
@@ -666,8 +666,8 @@ CAR_TOP = CAR_Z + 1.50
 # SEATED MAN
 # ======================================================================
 def build_seated_man(base_z):
-    jacket = pbr_mat("ManJacket", (0.022, 0.024, 0.03), roughness=0.5,
-                     metallic=0.2)
+    jacket = pbr_mat("ManJacket", (0.010, 0.011, 0.015), roughness=0.30,
+                     metallic=0.45)
     pants = pbr_mat("ManPants", (0.035, 0.038, 0.048), roughness=0.7,
                     metallic=0.05)
     skin = pbr_mat("ManSkin", (0.26, 0.16, 0.12), roughness=0.45, metallic=0.0)
