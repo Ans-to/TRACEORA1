@@ -1,0 +1,9 @@
+[scene] engine requested: cycles, profile: thin_hero
+[scene] haze density = 0.0016
+[scene] emission sampling = hero
+[scene] 839 objects, 11229 faces, shot 1-150, rendering 1-150, 1920x1080
+[scene] engine: CYCLES, samples: 20
+[scene] build only (pass --render to render frames)
+Blender 4.5.16 LTS (hash 3f6797307da5 built 2026-11-10 01:31:21)
+
+Blender quit
