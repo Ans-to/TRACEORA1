@@ -319,7 +319,7 @@ jobs:
           grep -E '^\[(scene|stats|render|variant)\]' blender.log \
             >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
-          count=$(ls frames/*.png 2>/dev/null | wc -l)
+          count=$(find frames -name '*.png' 2>/dev/null | wc -l || true)
           echo "shard produced $count images"
           if [ "$DO_RENDER" = "true" ] || [ "$VARIANTS" = "true" ]; then
             du -sh frames
